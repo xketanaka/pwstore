@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>getting started</title>
+  </head>
+  <style type="text/css" >
+  body {
+    margin: 0px;
+    font-family: 'Hiragino Kaku Gothic Pro', 'ヒラギノ角ゴ Pro bW2', メイリオ, Osaka, arial, sans-serif;
+  }
+  .invisible { display: none }
+  .btn {
+    display: inline-block;
+    width: 150px;
+    border-radius: 4px;
+    border: solid 1px #8B448B;
+    background-color: #8B448B;
+    color: #ffffff;
+    padding: 10px;
+    font-size: medium;
+    cursor: pointer;
+  }
+  .btn:hover { background-color: #803D80 }
+  input.secondary {
+    border: solid 1px #AD80AD;
+    background-color: #AD80AD;
+  }
+  input.secondary:hover { background-color: #A478A4; }
+  .btn[disabled] { background-color: #e0e0e0; border-color: #e0e0e0; }
+  h3 { color: #8B448B }
+  #select-database-file-div, #set-master-password-div {
+    margin: 100px auto;
+    width: 350px;
+  }
+  .narrow: { width: 300px; margin: 100px auto; }
+  span.title { color: #868686; float: left }
+  #selected-file input, #selected-file textarea {
+    border: none;
+    padding: 2px 5px;
+    width: 285px;
+    color: #868686;
+  }
+  #selected-file input { font-size: medium }
+  #selected-file textarea { font-size: small }
+  .text-field {
+    padding: 2px 5px;
+    width: 250px;
+    font-size: small;
+    margin-left: 5px;
+  }
+  #email { margin-left: 40px }
+  #set-master-password-div .ok-btn { margin-top: 10px; }
+}
+  </style>
+  <script type="text/javascript">
+  const remote = require("electron").remote;
+  const pwstore = remote.require("./lib/pwstore");
+  const {config} = remote.require("./lib/utils/config");
+
+  function setupWizard(){
+    if(!config.databaseFile){
+      let $ = (s)=>{ return document.querySelector("#select-database-file-div" + (s? " " + s: "")) }
+      $().classList.remove("invisible");
+      $(".ok-btn").disabled = true;
+      $(".choose-btn").addEventListener("click", (e)=>{
+        pwstore.getWindow("InitializeWindow").databaseFileSelect()
+        .then((file)=>{
+          $(".ok-btn").disabled = false;
+          if(file){
+            $("#selected-file").innerHTML = `<textarea cols="80" rows="2" disabled>${file}</textarea>`
+          }else{
+            $("#selected-file").innerHTML = '<input type="text" placeholder="<no chosen>" disabled>';
+          }
+          $(".choose-btn").classList.add("secondary");
+          $(".ok-btn").focus();
+        })
+      });
+      $(".ok-btn").addEventListener("click", (e)=>{
+        $().classList.add("invisible");
+        setupWizard()
+      });
+      return;
+    }
+    if(!config.encryptionKey){
+      let $ = (s)=>{ return document.querySelector("#set-master-password-div" + (s? " " + s: "")) };
+      $().classList.remove("invisible");
+      $("#email").focus();
+
+      let okCallback = (e)=>{
+        e.stopPropagation();
+        let email = $("#email").value;
+        let passwd = $("#password").value;
+        if(!email.match(/[\w]+@[\w]+/)){ $("#email").focus(); return alert("email format is not valid.") }
+        if(passwd.length < 8){ $("#password").focus(); return alert("password must be longer than 8 chars.") }
+
+        pwstore.getWindow("InitializeWindow").setMasterPassword(email, passwd).then(()=>{
+          $().classList.add("invisible");
+          setupWizard()
+        })
+      };
+      $().addEventListener("keypress", (e)=>{
+        if(e.code == "Enter") okCallback(e);
+      })
+      return;
+    }
+    if(config.initialized){
+      pwstore.getWindow("InitializeWindow").complete();
+    }
+  }
+  document.addEventListener("DOMContentLoaded", setupWizard);
+  </script>
+  <body>
+    <div id="select-database-file-div" class="invisible">
+      <h3>Choose a file to save passwords</h3>
+      <div class="narrow">
+        <span class="title">file:</span>
+        <span id="selected-file" ><input type="text" value="<no chosen>" disabled ></span>
+      </div>
+      <input type="button" class="btn choose-btn" value="Choose file">
+      <input type="button" class="btn ok-btn" value="OK">
+    </div>
+    <div id="set-master-password-div" class="invisible">
+      <h3>Set master password to encrypt the passwords</h3>
+      <div class="narrow" >
+        <span class="title">email</span>
+        <input id="email" type="text" class="text-field" placeholder="email address">
+      </div>
+      <div class="narrow" >
+        <span class="title">password</span>
+        <input id="password" type="password" class="text-field" placeholder="password" >
+      </div>
+      <input type="button" class="btn ok-btn" value="OK" >
+    </div>
+  </body>
+</html>

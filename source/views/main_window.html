@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>password manager</title>
+  </head>
+  <link href="css/font-awesome.min.css" rel="stylesheet">
+  <script src="js/util.js" charset="utf-8"></script>
+  <style type="text/css" >
+  html, body { height: 100%; }
+  body {
+    margin: 0px; overflow: hidden;
+    background-color: #dcdcdc;
+    font-family: 'Hiragino Kaku Gothic Pro', 'ヒラギノ角ゴ Pro bW2', メイリオ, Osaka, arial, sans-serif;
+  }
+  ul { margin: 0; padding: 0 }
+  li { list-style: none; }
+  #menubar { float: left; width: 100%; }
+  #menubar li {
+    margin: 5px 0; padding: 8px; min-width: 50px; cursor: default;
+    border: solid 1px #a3a3a3; border-radius: 5px;
+  }
+  #menubar li:hover { background-color: #e0e0e0; }
+  #menubar li:active { background-color: #c9c9c9; }
+  #menubar li i { display: block; text-align: center; }
+  #menubar li div { font-size: small; text-align: center; margin-bottom: -5px; }
+  #menubar .left li { float: left; margin-left: 5px; }
+  #menubar .right li { float: right; margin-right: 5px; }
+
+  #categories { float: left; width: 150px; padding-right: 3px; height: 100%; }
+  #passwords { float: left; width: 300px; height: 100%; }
+  #detail { position: relative; left: 456px; padding-top: 59px; height: 100%; pointer-events: none; } /* 59px is menubar height */
+  .area { height: 100%; background-color: #ffffff; font-size: small; pointer-events: auto; }
+  #passwords .area { overflow-y: scroll; height: 522px; }; /* 522 is (window.height - menubar height) */
+
+  #categories ul, #passwords ul { padding-top: 6px; }
+  #categories li, #passwords li { padding: 2px 6px; cursor: default; }
+  #categories li.all { padding-left: 10px; }
+  #categories li.nest { padding-left: 22px; }
+  #categories li span.bold { font-weight: bold; }
+  #passwords li span.service { display: inline-block; width: 85px; padding-left: 6px }
+  li.selected { background-color: #fff6fa; }
+  #detail div.selected { background-color: #fff6fa; color: #3b3b3b; border: solid 1px #e9669d; }
+  #detail div.selected table { display: table; }
+  #detail table { display: none; position: relative; left: -456px; padding-top: 10px; padding-left: 5px; }
+  #detail table th { padding: 2px 5px; text-align: right; font-weight: normal; font-size: x-small; }
+  #detail input[type=text], #detail select, #detail textarea, #detail .textarea {
+    padding: 2px; font-size: small; border: inherit; width: 200px;
+  }
+  #detail input[readonly], #detail .textarea { border: none; background-color: #fff6fa; }
+  #detail .invisible { display: none; }
+  #detail pre { margin: 0; min-height: 54px; }
+  #detail label { font-size: x-small }
+  #detail .delete-btn {
+    float: right; padding: 2px 6px; border-radius: 2px; cursor: default;
+  }
+  #detail .delete-btn       { border: solid 1px #F08080; color: #F08080; background-color: #FFE4E1; }
+  #detail .delete-btn:hover { border-color: #B63636; color: #FFE4E1; background-color: #B63636; }
+  #detail .delete-btn:active { border-color: #A02626; color: #ffffff; background-color: #A02626; }
+  #detail .delete-btn i { margin-right: 4px; }
+  </style>
+  <script type="text/javascript" >
+  const remote = require("electron").remote;
+  const pwstore = remote.require("./lib/pwstore");
+  function remoteMainWindow(){ return pwstore.getWindow("MainWindow") }
+  function $(selector){ return document.querySelector(selector) }
+  function $all(selector){ return Util.Array(document.querySelectorAll(selector)) }
+
+  document.addEventListener("DOMContentLoaded", ()=>{
+
+    /// データの取得・更新を行い、再描画するためのオブジェクト ///
+    var passwordList = new (function(){
+      this.loadCategories = ()=>{
+        let ul = $("#categories ul");
+        remoteMainWindow().categories()
+        .then((categories)=>{
+          categories.filter((category)=>{ return !$(`#category_${category.id}`) })
+          .forEach((category)=>{
+            let element = document.createElement("li");
+            element.className = "nest";
+            element.id = `category_${category.id}`;
+            element.innerHTML = `<span class="bold">-</span> ${Util.esc(category.name)}`;
+            ul.appendChild(element);
+          })
+        })
+      };
+      this.categorySelect = (category)=>{
+        remoteMainWindow().list(category)
+        .then((passwords)=>{
+          $("#passwords ul").innerHTML = passwords.map((password)=>{
+            let inner = this.generateOneHTML(password.service_name, password.account);
+            return `<li id="password_${password.id}" >${inner}</li>`;
+          }).join("");
+        })
+      };
+      this.generateOneHTML = (service_name, account)=>{
+        return `<i class="fa fa-lock"></i>` +
+        `<span class="service">${Util.esc(Util.displayString(service_name, 12)) || ""}</span>` +
+        `<span class="account">${Util.esc(Util.displayString(account, 18)) || ""}</span>`;
+      };
+      this.adjustSize = ()=>{
+        $("#passwords .area").style.height = (window.innerHeight - 61) + "px"; /* 61 px is nearly menubar height */
+      }
+      this.update = (values)=>{
+        let id = $("#pwstore_id").value;
+        return remoteMainWindow().update(id, values)
+        .then(()=>{
+          if("service_name" in values){
+            $(`#password_${id} .service`).innerHTML = Util.esc(Util.displayString(values.service_name, 12)) || "";
+          }
+          if("account" in values){
+            $(`#password_${id} .account`).innerHTML = Util.esc(Util.displayString(values.account, 18)) || "";
+          }
+        })
+      };
+      this.delete = ()=>{
+        let id = $("#pwstore_id").value;
+        return remoteMainWindow().delete(id).then(()=>{
+          let forDelete = $(`#password_${id}`);
+          forDelete.parentNode.removeChild(forDelete);
+          this.passwordUnSelect()
+        });
+      };
+      // パスワードを未選択状態にする
+      this.passwordUnSelect = ()=>{
+        let passwordSelected = $("#passwords li.selected");
+        if(passwordSelected) passwordSelected.classList.remove("selected");
+        // 入力エリアを非表示に
+        $("#detail .area").classList.remove("selected");
+      };
+      this.passwordSelect = (li)=>{
+        let nowSelected = $("#passwords li.selected");
+        if(nowSelected) nowSelected.classList.remove("selected");
+        li.classList.add("selected");
+
+        let idMatch = li.id.match(/password_(.*)$/);
+
+        return remoteMainWindow().get(idMatch[1])
+        .then((password)=>{
+          $("#detail .area").classList.add("selected");
+console.log("detail:: password.id: " + password.id)
+          $("#pwstore_id").value   = password.id || "";
+          $("#service_name").value = password.service_name || "";
+          $("#account").value      = password.account || "";
+          $("#password").value     = password.password || "";
+          $("#keyword").value      = password.keyword || "";
+          $("#url").value          = password.url || "";
+          $("#note").value         = password.note || "";
+          $("#account_2nd").value  = password.account_2nd || "";
+          $("#account_3rd").value  = password.account_3rd || "";
+          $("#password_2nd").value = password.password_2nd || "";
+          $("#password_3rd").value = password.password_3rd || "";
+          $("#status").value       = password.status || "";
+          $("#category").value     = password.category || "";
+
+          $("#note_display").innerHTML = Util.esc(password.note || "");
+          $("#category_display").value = $all("#category option").filter((op)=>{
+            return op.value == (password.category || "")
+          })[0].innerHTML;
+          $("#status_display").value = $all("#status option").filter((op)=>{
+            return op.value == (password.status || "")
+          })[0].innerHTML;
+
+          $("#show-password-tr").classList[password.password ? "remove" : "add"]("invisible");
+          $("#show-password_2nd-tr").classList[password.password_2nd ? "remove" : "add"]("invisible");
+          $("#show-password_3rd-tr").classList[password.password_3rd ? "remove" : "add"]("invisible");
+        })
+      };
+      this.addNew = (id)=>{
+        let element = document.createElement("li");
+        element.id = `password_${id}`;
+        element.innerHTML = this.generateOneHTML("", "");
+        $("#passwords ul").appendChild(element);
+
+        this.passwordSelect(element).then(()=>{ Util.triggerEvent($("#service_name"), "click"); })
+      };
+    })();
+
+    /// 初期化処理 ///
+    passwordList.loadCategories();
+    passwordList.categorySelect();
+//    passwordList.adjustSize();
+    ///
+    window.addEventListener("resize", (e)=>{ passwordList.adjustSize() })
+
+    /// カテゴリリスト選択のコールバック
+    $("#categories ul").addEventListener("click", (e)=>{
+      let li = e.target;
+      if(e.target.tagName != "LI") return;
+      if(li.classList.contains("selected")) return;
+
+      let idMatch = li.id.match(/category_(.*)$/)
+      passwordList.categorySelect(idMatch && idMatch[1]);
+
+      let nowSelected = $("#categories li.selected")
+      if(nowSelected) nowSelected.classList.remove("selected");
+      li.classList.add("selected");
+      // 未選択にする
+      passwordList.passwordUnSelect();
+    })
+
+    /// パスワードリスト選択の"click"コールバック
+    $("#passwords ul").addEventListener("click", (e)=>{
+      if(e.target.tagName != "LI" && e.target.tagName != "SPAN") return;
+      let li = e.target.tagName == "LI" ? e.target : e.target.parentNode;
+      if(li.classList.contains("selected")) return;
+
+      passwordList.passwordSelect(li);
+    })
+    $("body").addEventListener("keydown", (e)=>{
+      if(document.activeElement.tagName != "BODY") return;
+      if(e.code != "ArrowUp" && e.code != "ArrowDown") return;
+      if(!$("#passwords li.selected")) return;
+
+      let selected = $("#passwords li.selected");
+      let li = e.code == "ArrowUp" ? selected.previousElementSibling : selected.nextElementSibling;
+      if(li){
+        passwordList.passwordSelect(li);
+      }
+    })
+    /// パスワード入力エリアのコールバック - クリック時に入力可能にする
+    $all("#detail input, #detail .textarea").forEach((input)=>{
+      input.addEventListener("click", (e)=>{
+        if(input.id == "category_display" || input.id == "status_display"){
+          input.classList.add("invisible");
+          let selectTag = $(`#${input.id.replace(/_display/,"")}`);
+          selectTag.classList.remove("invisible");
+          selectTag["data-before-editing"] = selectTag.value;
+          setTimeout(()=>{ selectTag.focus() }, 0);
+        }
+        else if(input.className == "textarea"){
+          input.classList.add("invisible");
+          let textareaTag = $("#detail textarea");
+          textareaTag.classList.remove("invisible");
+          textareaTag["data-before-editing"] = input.innerHTML;
+          setTimeout(()=>{ textareaTag.focus() }, 0);
+        }
+        else if(input.readOnly){
+          input.readOnly = false;
+          input["data-before-editing"] = input.value;
+          input.focus();
+        }
+        e.preventDefault();
+      })
+    });
+    /// パスワード入力エリアのタブキーの押下のコールバック
+    $all("#detail input, #detail select, #detail textarea").forEach((input)=>{
+      input.addEventListener("keydown", (e)=>{
+        if(e.code != "Tab") return;
+        e.preventDefault();
+
+        let nextTr = (function findNextTr(tr, shiftKey){
+          let nextTr = shiftKey ? tr.previousElementSibling : tr.nextElementSibling;
+          return nextTr && nextTr.classList.contains("unfocus") ? findNextTr(nextTr, shiftKey) : nextTr;
+        })(e.target.parentNode.parentNode, e.shiftKey);
+
+        if(!nextTr) return;
+        Array.prototype.slice.call(nextTr.lastElementChild.children).forEach((input)=>{
+          if(input.tagName == "INPUT" || input.classList.contains("textarea")){
+            Util.triggerEvent(input, "click");
+          }
+        })
+      });
+    })
+    /// パスワード入力エリアの"inputタグ"はEnterキーでフォーカスアウトする
+    $all("#detail input").forEach((input)=>{
+      // Enterキーでフォーカスアウトする
+      input.addEventListener("keypress", (e)=>{ if(e.code == "Enter") Util.triggerEvent(input, "blur") })
+    });
+    /// パスワード入力エリアの"inputタグ"のフォーカスアウトコールバック - DBを更新し、参照モードにする
+    $all("#detail input").forEach((input)=>{
+      input.addEventListener("blur", (e)=>{
+        let readOnlyTrue = ()=>{ input.readOnly = true; };
+        if(input.classList.contains("display-only") || input.value == input["data-before-editing"]){
+          readOnlyTrue();
+        }else{
+          passwordList.update({ [input.id]: input.value }).then(readOnlyTrue);
+        }
+      })
+    })
+    /// パスワード入力エリアの"selectタグ"のフォーカスアウトコールバック - DBを更新し、参照モードにする
+    $all("#category, #status").forEach((select)=>{
+      select.addEventListener("blur", (e)=>{
+        let listToTextField = ()=>{
+          $(`#${select.id}_display`).value = $all(`#${select.id} option`).filter(o => o.selected)[0].innerHTML;
+          select.classList.add("invisible");
+          $(`#${select.id}_display`).classList.remove("invisible");
+        }
+        select.value == select["data-before-editing"]?
+          listToTextField(): passwordList.update({ [select.id]: select.value }).then(listToTextField)
+      })
+    })
+    /// パスワード入力エリアの"textareaタグ"のフォーカスアウトコールバック - DBを更新し、参照モードにする
+    $("#detail textarea").addEventListener("blur", (e)=>{
+      let textAreaToPre = ()=>{
+        e.target.classList.add("invisible");
+        $("#detail .textarea").classList.remove("invisible");
+        $("#detail .textarea").innerHTML = e.target.value;
+      }
+      e.target.value == e.target["data-before-editing"]?
+        textAreaToPre() : passwordList.update({ note: e.target.value }).then(textAreaToPre);
+    })
+    /// パスワード入力エリアの削除ボタンコールバック
+    $("#detail .delete-btn").addEventListener("click", (e)=>{ passwordList.delete(); });
+    /// メニューボタンのクリック時のコーづバック
+    $("#menu-new").addEventListener("click", (e)=>{
+      remoteMainWindow().create().then((id)=>{ passwordList.addNew(id) })
+    });
+    $("#menu-search").addEventListener("click", (e)=>{ remoteMainWindow().moveToSearchWindow() })
+
+    remoteMainWindow().showOnReady();
+  });
+  </script>
+  <body>
+    <!--<div id="content">-->
+    <div id="menubar">
+      <ul class="left">
+        <li id="menu-new"><i class="fa fa-plus" ></i><div>new</div></li>
+        <li id="menu-import"><i class="fa fa-upload" ></i><div>import</div></li>
+        <li id="menu-export"><i class="fa fa-download" ></i><div>export</div></li>
+      </ul>
+      <ul class="right">
+        <li id="menu-setting"><i class="fa fa-cog" ></i><div>setting</div></li>
+        <li id="menu-search"><i class="fa fa-undo" ></i><div>search</div></li>
+      </ul>
+    </div>
+    <div id="categories">
+      <div class="area" >
+        <div class="title"></div>
+        <ul>
+          <li class="all selected"><i class="fa fa-caret-down"></i> All Categories</li>
+          <!-- selected categories -->
+        </ul>
+      </div>
+    </div>
+    <div id="passwords">
+      <div class="area" >
+        <div class="scrollable" >
+          <ul>
+            <!-- selected passwords -->
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div id="detail">
+      <div class="area" >
+        <input type="hidden" id="pwstore_id" value="" >
+        <table>
+          <tbody>
+            <tr>
+              <th>service</th><td><input type="text" id="service_name" value="Amazon" readonly="readonly" ></td>
+            </tr>
+            <tr>
+              <th>account</th><td><input type="text" id="account" value="tanaka_ken@nifty.com" readonly="readonly" ></td>
+            </tr>
+            <tr>
+              <th>password</th><td><input type="password" id="password" value="value" readonly="readonly" ></td>
+            </tr>
+            <tr class="unfocus" id="show-password-tr">
+              <td></td><td><label><input type="checkbox" >show password</label></td>
+            </tr>
+            <tr>
+              <th>URL</th><td><input type="text" id="url" value="https://www.amazon.com" readonly="readonly" ></td>
+            </tr>
+            <tr>
+              <th>keywords</th><td><input type="text" id="keyword" value="amazon" readonly="readonly" ></td>
+            </tr>
+            <tr>
+              <th>category</th>
+              <td>
+                <input type="text" class="display-only" id="category_display" value="<none>" readonly="readonly" >
+                <select class="invisible" id="category">
+                  <option value="">- none -</option>
+                  <option value="1">business</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <th>note</th>
+              <td rowspan="3">
+                <pre class="textarea" id="note_display" ></pre>
+                <textarea class="invisible" id="note" rows="3"></textarea>
+              </td>
+            </tr>
+            <tr class="unfocus">
+              <th>&nbsp;</th>
+            </tr>
+            <tr class="unfocus">
+              <th>&nbsp;</th>
+            </tr>
+            <tr class="status">
+              <th>status</th>
+              <td>
+                <input type="text" class="display-only" id="status_display" value="active" readonly="readonly">
+                <select class="invisible" id="status" >
+                  <option value="1">active</option>
+                  <option value="7">expired</option>
+                  <option value="8">exited</option>
+                  <option value="9">closed</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <th>2nd account</th><td><input type="text" id="account_2nd" value="microstoria@docomo.ne.jp" readonly="readonly" ></td>
+            </tr>
+            <tr>
+              <th>3rd account</th><td><input type="text" id="account_3rd" value="" readonly="readonly" ></td>
+            </tr>
+            <tr>
+              <th>2nd password</th><td><input type="password" id="password_2nd" value="pincode" readonly="readonly" ></td>
+            </tr>
+            <tr class="unfocus" id="show-password_2nd-tr">
+              <td></td><td><label><input type="checkbox" >show 2nd password</label></td>
+            </tr>
+            <tr>
+              <th>3rd password</th><td><input type="password" id="password_3rd" value="" readonly="readonly" ></td>
+            </tr>
+            <tr class="unfocus" id="show-password_3rd-tr">
+              <td></td><td><label><input type="checkbox" >show 3rd password</label></td>
+            </tr>
+            <tr class="unfocus">
+              <th></th><td><span class="delete-btn"><i class="fa fa-close"></i>Delete</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>

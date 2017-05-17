@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>please enter keyword!</title>
+  </head>
+  <link href="css/font-awesome.min.css" rel="stylesheet">
+  <script src="js/util.js" charset="utf-8"></script>
+  <style type="text/css" >
+  body {
+    overflow: hidden;
+    margin: 0px;
+    font-family: 'Hiragino Kaku Gothic Pro', 'ヒラギノ角ゴ Pro bW2', メイリオ, Osaka, arial, sans-serif;
+  }
+  #search-area { background-color: #dcdcdc; padding: 1px; }
+  #search-area input {
+    display: inline-block; width: 543px;
+    font-size: large; box-sizing: border-box;
+    border-radius:6px; border: solid 1px #efefef;
+    padding: 6px; margin: 1px;
+  }
+  #menu { float: right; }
+  #menu button { background-color: #dcdcdc; border: solid 1px #a3a3a3; border-radius: 6px; }
+  #menu button:hover { background-color: #e3e3e3 }
+  #menu button:active { background-color: #d6d6d6 }
+  #menu button i { display: block; text-align: center; font-size: medium; }
+  #menu button div { font-size: x-small; text-align: center; }
+
+  #result-area { background-color: #dcdcdc; }
+  ul { list-style: none; margin: 0px; padding: 0px; }
+  li { padding: 2px; }
+  li .result { border-radius:6px; border: solid 1px #efefef; padding: 5px; background-color: #efefef; position: relative }
+  li .result span { display: inline-block; font-size: small; padding-right: 15px; background-color: #efefef; color: #696969; pointer-events: none; }
+  li .result span.right { float: right }
+  li.selected { background-color: #e9669d;  }
+  li.selected .result { border: solid 1px #fdfdfd; background-color: #fff6fa;  }
+  li.selected .result span {  color: #3b3b3b; background-color: #fff6fa }
+  .more-items {
+    position: absolute; top: 9px; width: 100%; text-align: center; left: -3px; padding: 3px;
+    color: #999999; background: linear-gradient(transparent, white);
+  }
+  #tooltip { display: none; position: absolute; color: white; background-color: #f0d0e0; font-size: small; padding: 2px 4px; }
+  </style>
+  <script type="text/javascript">
+  const remote = require("electron").remote;
+  const pwstore = remote.require("./lib/pwstore");
+  function remoteSearchWindow(){ return pwstore.getWindow("SearchWindow") }
+  function $(selector){ return document.querySelector(selector) }
+  function $all(selector){ return Util.Array(document.querySelectorAll(selector)) }
+
+  document.addEventListener("DOMContentLoaded", ()=>{
+
+    var searchResult = new (function(ul){
+      this.ul = ul;
+      this.updateResults = (objects)=>{
+        let nowSelected = this.results().filter(li => li.className == "selected")[0];
+        let nowSelectedId = nowSelected && nowSelected.id.match(/password_(.*)$/)[1];
+        // 結果が１件の場合は自動的に選択状態に
+        if(objects.length == 1) nowSelectedId = objects[0].id;
+
+        this.ul.innerHTML = objects.map((p)=>{
+          return `<li ${p.id == nowSelectedId ? 'class="selected"': ''} id="password_${p.id}">
+                    <div class="result">
+                      <span>service: ${Util.esc(p.service_name)}</span>
+                      <span class="right">account: ${Util.esc(p.account)} </span>
+                    </div>
+                  </li>`;
+        }).join("");
+      };
+      this.results = ()=>{ return Array.prototype.slice.call(this.ul.children) };
+      this.select = (li)=>{ li.className = "selected" };
+      this.unSelect = (li)=>{
+        if(!li){
+          li = this.results().filter(obj => obj.className == "selected")[0];
+        }
+        li && (li.className = "");
+      };
+      this.selectDown = ()=>{
+        let results = this.results();
+        if(results.length == 0) return;
+        if(results.every(result => result.className != "selected")){
+          $("#search-area input").blur();
+          return this.select(results[0]);
+        }
+        let selectedIndex = results.map(result => result.className == "selected").indexOf(true);
+        if(selectedIndex < (results.length - 1)){
+          this.unSelect(results[selectedIndex]);
+          this.select(results[selectedIndex + 1]);
+        }
+      },
+      this.selectUp = ()=>{
+        let results = this.results();
+        if(results.length == 0) return;
+        if(results.every(result => result.className != "selected")) return;
+        let selectedIndex = results.map(result => result.className == "selected").indexOf(true);
+        if(selectedIndex == 0){
+          this.unSelect(results[selectedIndex]);
+          $("#search-area input").focus();
+        }
+        if(selectedIndex > 0){
+          this.select(results[selectedIndex - 1]);
+          this.unSelect(results[selectedIndex]);
+        }
+      }
+      this.enter = (shiftKey, altKey, ctrlKey)=>{
+        let selected = this.results().filter(obj => obj.className == "selected")[0];
+        if(!selected) return;
+
+        let target =  "password";
+        if(shiftKey){ target = "account" }
+        if(altKey){   target = target + "_2nd" }
+        if(ctrlKey){  target = target + "_3rd" }
+
+        remoteSearchWindow().copy(selected.id.match(/password_(.*)$/)[1], target)
+        .then((result)=>{
+          if(result){
+            if(shiftKey){
+              let tooltip = $("#tooltip");
+              tooltip.innerHTML = target + " をクリップボードにコピーしました";
+              tooltip.style.top = selected.offsetTop + "px";
+              tooltip.style.display = "inline-block";
+              setTimeout(()=>{ tooltip.style.display = "none" }, 1800);
+            }else{
+              window.close();
+            }
+          }
+        });
+      }
+
+    })($("#result-area ul"));
+
+    let Key = {
+      isArrowDown: (e)=>{ return e.code == "ArrowDown" || (e.ctrlKey && e.code == "KeyN") },
+      isArrowUp: (e)=>{ return e.code == "ArrowUp" || (e.ctrlKey && e.code == "KeyP") },
+      isEnter: (e)=>{ return e.code == "Enter" }
+    };
+    let textField = $("#search-area input");
+    textField.addEventListener("compositionstart", (e)=>{ textField._status_ = "composition" })// 変換を開始
+    textField.addEventListener("compositionend", (e)=>{ delete textField._status_ })// 変換を終了
+    // テキストフィールドのキーアップイベントで検索
+    textField.addEventListener("keyup", (e)=>{
+      if(textField._prevValue_ == textField.value) return;
+      textField._prevValue_ = textField.value;
+
+      remoteSearchWindow().search(textField.value)
+      .then((results)=>{ searchResult.updateResults(results) });
+    })
+    // ドキュメントのキーダウンイベントのコールバック
+    document.body.addEventListener("keydown", (e)=>{
+      if(textField._status_ == "composition") return;
+      if(Key.isArrowDown(e)) return searchResult.selectDown();
+      if(Key.isArrowUp(e)) return searchResult.selectUp();
+      if(Key.isEnter(e)) return searchResult.enter(e.shiftKey, e.altKey, e.ctrlKey);
+    })
+    // マネージメントウィンドウに遷移
+    $("#search-area button").addEventListener("click", (e)=>{
+      remoteSearchWindow().moveToMainWindow();
+    })
+    $("#result-area").addEventListener("mouseover", (e)=>{
+      if(e.target.tagName != "DIV" && e.target.tagName != "LI") return;
+      let li = e.target.tagName == "DIV" ? e.target.parentNode : e.target;
+      if(li.className == "selected") return;
+      searchResult.unSelect();
+      searchResult.select(li);
+    });
+    $("#result-area").addEventListener("mouseout", (e)=>{
+      if(e.target.tagName != "DIV" && e.target.tagName != "LI") return;
+      return searchResult.unSelect(e.target.tagName == "DIV" ? e.target.parentNode : e.target);
+    });
+    $("#result-area").addEventListener("click", (e)=>{
+      if(e.target.tagName != "DIV" && e.target.tagName != "LI") return;
+      return searchResult.enter(e.shiftKey, e.altKey, e.ctrlKey);
+    })
+    remoteSearchWindow().showOnReady();
+    setTimeout(()=>{ textField.focus() }, 100);
+  });
+  </script>
+  <body>
+    <div id="search-area">
+      <input type="text" placeholder="キーワード">
+      <span id="menu"><button><i class="fa fa-list-ul" ></i><div>manage</di></button></span>
+    </div>
+    <div id="result-area">
+      <ul>
+      </ul>
+    </div>
+    <div id="tooltip" class="invisible" ></div>
+  </body>
+</html>

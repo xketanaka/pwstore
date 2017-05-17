@@ -1,0 +1,30 @@
+{
+  "name": "pwstore",
+  "version": "0.1.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "prebuild-sqlite3": "npm run install-sqlcipher; npm run re-install-sqlite3; npm run setup-for-build",
+    "setup-for-build": "npm run re-install-sqlite3; cd node_modules/sqlite3; npm install; npm run prepublish",
+    "install-sqlcipher": "brew install sqlcipher",
+    "re-install-sqlite3": "eval ${npm_package_config_sqlcipher_env}; npm install sqlite3 ${npm_package_config_build_opt}",
+    "build-sqlite3": "npm run build-sqlite3-1; npm run build-sqlite3-2",
+    "build-sqlite3-1": "eval ${npm_package_config_buildenv}; node-gyp ${npm_package_config_build_args1}/${TARGET_DIR}",
+    "build-sqlite3-2": "eval ${npm_package_config_buildenv}; node-gyp rebuild --target=$VERS --target_platform=${ARCH} ${npm_package_config_build_args2}/${TARGET_DIR} ${npm_package_config_build_opt}"
+  },
+  "config": {
+    "buildenv": "cd node_modules/sqlite3; ARCH=darwin; VERS=`electron -v | sed 's/^v//'`; VERS_SHORT=`electron -v | sed 's/\\.[0-9]$//'`; TARGET_DIR=electron-${VERS_SHORT}-${ARCH}-x64",
+    "sqlcipher_env": "export LDFLAGS='-L/usr/local/lib'; export CPPFLAGS='-I/usr/local/include -I/usr/local/include/sqlcipher'; export CXXFLAGS='-I/usr/local/include -I/usr/local/include/sqlcipher'",
+    "build_args1": "configure --module_name=node_sqlite3 --module_path=../lib/binding",
+    "build_args2": "--arch=x64 --dist-url=https://atom.io/download/atom-shell --module_name=node_sqlite3 --module_path=../lib/binding",
+    "build_opt": "--build-from-source --sqlite_libname=sqlcipher --sqlite=/usr/local"
+  },
+  "dependencies": {
+    "sqlite3": "^3.1.8"
+  },
+  "devDependencies": {
+    "electron": "*",
+    "electron-packager": "*",
+    "node-gyp": "*"
+  }
+}
