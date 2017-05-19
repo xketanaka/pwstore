@@ -19,8 +19,8 @@ if [ "$VERSION" = "" ]; then
 fi
 
 if [ "$INI_FILE" != "" ] && [ -f $INI_FILE ]; then
-    echo $INI_FILE
-#    mv $INI_FILE source/config/app.ini
+    echo "replace app.ini by [ $INI_FILE ]"
+    cp $INI_FILE source/config/app.ini
 fi
 
 [ -d pwstore-darwin-x64 ] && rm -rf pwstore-darwin-x64
@@ -28,6 +28,6 @@ fi
 source/node_modules/.bin/electron-packager source pwstore --platform=darwin --arch=x64 --app-version=$VERSION
 
 if [ "$INI_FILE" != "" ]; then
-    echo "done"
-#    git checkout HEAD source/config/app.ini
+    echo "restore app.ini git [ checkout HEAD ]"
+    git checkout HEAD source/config/app.ini
 fi
