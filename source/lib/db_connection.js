@@ -1,3 +1,4 @@
+const debug = require("./utils/debug").getLogger("query");
 
 class DBConnection {
   constructor(db){
@@ -89,7 +90,8 @@ class DBConnection {
     return this.allAsPromise("SELECT * FROM category ORDER BY display_order", [])
   }
   allAsPromise(statement, params){
-console.log(`${statement}, ${JSON.stringify(params)}`)
+    debug(`${statement}, ${JSON.stringify(params)}`);
+
     return new Promise((resolve, reject)=>{
       this.db.all(statement, params, function(err, rows){
         if(err) return reject(err);
@@ -98,7 +100,8 @@ console.log(`${statement}, ${JSON.stringify(params)}`)
     });
   }
   runAsPromise(statement, params){
-console.log(`${statement}, ${JSON.stringify(params)}`)
+    debug(`${statement}, ${JSON.stringify(params)}`);
+
     return new Promise((resolve, reject)=>{
       this.db.run(statement, params, function(err){
         if(err) return reject(err);

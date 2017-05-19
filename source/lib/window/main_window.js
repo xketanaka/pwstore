@@ -1,5 +1,6 @@
 const pwstore = require("../pwstore");
 const electron = require('electron');
+const debug = require("../utils/debug").getLogger("app");
 
 class MainWindow {
   get defaultSize(){ return { width: 1000, height: 600 } }
@@ -68,7 +69,7 @@ class MainWindow {
   }
   update(id, input){
     // TODO: validation
-console.log("register(input:" + JSON.stringify(input));
+    debug("register(input:" + JSON.stringify(input));
 
     // encrypt
     ['password', 'password_2nd', 'password_3rd'].filter(attrName => attrName in input).forEach((attrName)=>{
