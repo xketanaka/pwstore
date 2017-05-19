@@ -15,19 +15,6 @@ class PwStore {
       this.windowManager = new PwStore.WindowManager(this.appContext);
       this.windowManager.create(config.initialized ? "SearchWindow" : "InitializeWindow");
     })
-    // すべてのウィンドウが閉じられた時にアプリケーションを終了する。
-    app.on('window-all-closed', ()=>{
-      // 通常、macではウィンドウが全て閉じられても終了しないが、このアプリでは閉じる
-      // if(process.platform !== 'darwin'){
-        app.quit()
-      // }
-    })
-    app.on('activate', ()=>{
-      // macOS では、ドックをクリックされた時にウィンドウがなければ新しく作成する。
-      if(this.windowManager.isNoWindow()){
-        this.windowManager.create("SearchWindow");
-      }
-    })
   }
   initialize(force = false){
     if(!config.initialized) return;
