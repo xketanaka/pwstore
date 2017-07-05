@@ -138,7 +138,6 @@
         return remoteMainWindow().get(idMatch[1])
         .then((password)=>{
           $("#detail .area").classList.add("selected");
-console.log("detail:: password.id: " + password.id)
           $("#pwstore_id").value   = password.id || "";
           $("#service_name").value = password.service_name || "";
           $("#account").value      = password.account || "";

@@ -30,11 +30,20 @@
   ul { list-style: none; margin: 0px; padding: 0px; }
   li { padding: 2px; }
   li .result { border-radius:6px; border: solid 1px #efefef; padding: 5px; background-color: #efefef; position: relative }
-  li .result span { display: inline-block; font-size: small; padding-right: 15px; background-color: #efefef; color: #696969; pointer-events: none; }
-  li .result span.right { float: right }
+  li .result span { display: inline-block; font-size: small; padding-right: 15px; color: #696969; pointer-events: none; }
+  li .result span.right { float: right; padding-top: 4px; }
+  li .result span.right-btn {
+    float: right; margin-top: -4px;
+    border: solid 1px transparent; border-radius: 6px;
+    padding: 0px 4px; font-size: x-small; pointer-events: auto;
+  }
+  li .result span.right-btn i { display: block; text-align: center; font-size: medium; }
   li.selected { background-color: #e9669d;  }
   li.selected .result { border: solid 1px #fdfdfd; background-color: #fff6fa;  }
   li.selected .result span {  color: #3b3b3b; background-color: #fff6fa }
+  li.selected .result span.right-btn { border: outset 1px #efefef; }
+  li.selected .result span.right-btn:hover { background-color: #faf1f5; cursor: default; }
+  li.selected .result span.right-btn:active { background-color: #efe6ea }
   .more-items {
     position: absolute; top: 9px; width: 100%; text-align: center; left: -3px; padding: 3px;
     color: #999999; background: linear-gradient(transparent, white);
@@ -59,12 +68,12 @@
         if(objects.length == 1) nowSelectedId = objects[0].id;
 
         this.ul.innerHTML = objects.map((p)=>{
-          return `<li ${p.id == nowSelectedId ? 'class="selected"': ''} id="password_${p.id}">
-                    <div class="result">
-                      <span>service: ${Util.esc(p.service_name)}</span>
-                      <span class="right">account: ${Util.esc(p.account)} </span>
-                    </div>
-                  </li>`;
+          let clazz = p.id == nowSelectedId ? 'class="selected"': '';
+          let spans = [];
+          spans.push(`<span class="service"><i class="fa fa-lock"></i> ${Util.esc(p.service_name)}</span>`);
+          spans.push(`<span class="right-btn" ><i class="fa fa-comment-o"></i>detail</span>`);
+          spans.push(`<span class="right"> ${Util.esc(p.account)} </span>`);
+          return `<li ${clazz} id="password_${p.id}"><div class="result">${spans.join("")}</div></li>`;
         }).join("");
       };
       this.results = ()=>{ return Array.prototype.slice.call(this.ul.children) };
@@ -157,9 +166,13 @@
       remoteSearchWindow().moveToMainWindow();
     })
     $("#result-area").addEventListener("mouseover", (e)=>{
-      if(e.target.tagName != "DIV" && e.target.tagName != "LI") return;
-      let li = e.target.tagName == "DIV" ? e.target.parentNode : e.target;
-      if(li.className == "selected") return;
+      var li;
+      if(e.target.tagName == "DIV"){ li = e.target.parentNode }
+      if(e.target.tagName == "LI"){  li = e.target }
+      if(e.target.tagName == "SPAN" && e.target.className == "right-btn"){  li = e.target.parentNode.parentNode; }
+
+      if(!li || li.className == "selected") return;
+
       searchResult.unSelect();
       searchResult.select(li);
     });
@@ -167,9 +180,15 @@
       if(e.target.tagName != "DIV" && e.target.tagName != "LI") return;
       return searchResult.unSelect(e.target.tagName == "DIV" ? e.target.parentNode : e.target);
     });
+
     $("#result-area").addEventListener("click", (e)=>{
-      if(e.target.tagName != "DIV" && e.target.tagName != "LI") return;
-      return searchResult.enter(e.shiftKey, e.altKey, e.ctrlKey);
+      if(e.target.tagName == "DIV" == e.target.tagName == "LI"){
+        return searchResult.enter(e.shiftKey, e.altKey, e.ctrlKey);
+      }
+      if(e.target.tagName == "SPAN" && e.target.className == "right-btn"){
+        // TODO 詳細ボタンクリック時の挙動
+        console.log("click right-btn");
+      }
     })
     remoteSearchWindow().showOnReady();
     setTimeout(()=>{ textField.focus() }, 100);

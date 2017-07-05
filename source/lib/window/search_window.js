@@ -35,7 +35,6 @@ class SearchWindow {
     });
   }
   copy(id, target = "password"){
-console.log(`copy.target: ${target}`)
     return this.appContext.database.getConnection()
     .then((conn)=>{
       return conn.find(id)

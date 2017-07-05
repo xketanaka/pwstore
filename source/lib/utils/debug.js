@@ -1,21 +1,21 @@
 
-class Debug {
-  static getEmptyLogger(){ return (msg)=>{ /* ignore */ }; }
-  static getPrefixedLogger(prefix){ return (msg)=>{ console.log(`[${prefix}] ${msg}`) }; }
-  static getLogger(name){
-    if(Debug.ready[name]) return Debug.ready[name];
+function getEmptyLogger(){ return (msg)=>{ /* ignore */ }; }
+function getPrefixedLogger(prefix){ return (msg)=>{ console.log(`[${prefix}] ${msg}`) }; }
 
-    if(!("target" in Debug)){
-      let envString = process.env["DEBUG_LOG"] || "";
-      Debug.target = envString.split(",").map(v => v.trim()).filter(v => v);
-    }
-    if(Debug.target.includes(name)){
-      return Debug.ready[name] = Debug.getPrefixedLogger(name);
-    }else{
-      return Debug.ready[name] = Debug.getEmptyLogger();
-    }
+function Debug(){
+  console.log(...arguments);
+}
+
+Debug.getLogger = (name)=>{
+  if(Debug.loggers[name]) return Debug.loggers[name];
+
+  if(Debug.target.includes(name)){
+    return Debug.loggers[name] = getPrefixedLogger(name);
+  }else{
+    return Debug.loggers[name] = getEmptyLogger();
   }
 }
-Debug.ready = {};
+Debug.target  = (process.env["DEBUG_LOG"] || "").split(",").map(v => v.trim()).filter(v => v);
+Debug.loggers = {};
 
 module.exports = Debug;
