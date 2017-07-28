@@ -33,17 +33,17 @@
   li .result span { display: inline-block; font-size: small; padding-right: 15px; color: #696969; pointer-events: none; }
   li .result span.right { float: right; padding-top: 4px; }
   li .result span.right-btn {
-    float: right; margin-top: -4px;
+    float: right; margin-top: -2px;
     border: solid 1px transparent; border-radius: 6px;
     padding: 0px 4px; font-size: x-small; pointer-events: auto;
   }
-  li .result span.right-btn i { display: block; text-align: center; font-size: medium; }
+  li .result span.right-btn i { display: block; text-align: center; font-size: small; }
   li.selected { background-color: #e9669d;  }
   li.selected .result { border: solid 1px #fdfdfd; background-color: #fff6fa;  }
-  li.selected .result span {  color: #3b3b3b; background-color: #fff6fa }
-  li.selected .result span.right-btn { border: outset 1px #efefef; }
-  li.selected .result span.right-btn:hover { background-color: #faf1f5; cursor: default; }
-  li.selected .result span.right-btn:active { background-color: #efe6ea }
+  li.selected .result span { color: #3b3b3b; background-color: #fff6fa }
+  li.selected .result span.right-btn { border-style: outset; border-color: #f8f0f3; cursor: default; }
+  li.selected .result span.right-btn:hover { background-color: #fffafd; }
+  li.selected .result span.right-btn:active { background-color: #efe6ea; border-style: groove; }
   .more-items {
     position: absolute; top: 9px; width: 100%; text-align: center; left: -3px; padding: 3px;
     color: #999999; background: linear-gradient(transparent, white);
