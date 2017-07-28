@@ -18,7 +18,6 @@ class WindowManager {
 
   static createBrowserWindow(name, options){
     let browserWindow = new BrowserWindow(options);
-//    browserWindow.openDevTools();
     browserWindow.associatedWindow = name;
 
     // ウィンドウが閉じられたら pwstore から解放（ウィンドウオブジェクトを参照から外す）
