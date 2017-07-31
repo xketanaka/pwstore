@@ -58,6 +58,31 @@
   #detail .delete-btn:hover { border-color: #B63636; color: #FFE4E1; background-color: #B63636; }
   #detail .delete-btn:active { border-color: #A02626; color: #ffffff; background-color: #A02626; }
   #detail .delete-btn i { margin-right: 4px; }
+  #modal-dialog {
+    display: none; position: absolute; z-index: 100; width: 420px; height: 80px;
+    left: 50%; top: 30%; margin-left: -220px; margin-top: -110px;
+  }
+  #modal-background {
+    display: none; position: absolute; width: 100%; height: 100%; top: 0; left: 0; z-index: 90;
+    background-color: rgba(0,0,0,0); transition-duration: 0.5s; transition-property: background-color;
+  }
+  #modal-dialog.shown { display: inline-block; }
+  #modal-background.shown { display: block; }
+  #modal-dialog .inner {
+    background-color: #ffffff; border-radius: 6px; border: solid 2px #dcdcdc; padding: 30px;
+    font-size: small; color: #747474;
+  }
+  #modal-dialog .narrow { width: 420px; padding-bottom: 10px; }
+  #modal-dialog span.title { width: 80px; display: inline-block; }
+  #modal-dialog span.errors { color: red; }
+  #modal-dialog .text-field { padding: 2px 5px; width: 250px; font-size: small; margin-left: 5px; }
+  #modal-dialog .button-area { text-align: center; }
+  #modal-dialog input[type=button] {
+    border: solid 1px #707070; border-radius: 4px; margin: 10px 4px 0 0; padding: 6px; font-size: small;
+    width: 150px; background-color: #dcdcdc; color: #707070; cursor: pointer;
+  }
+  #modal-dialog input[type=button]:hover { background-color: #e0e0e0; }
+  #modal-dialog input[type=button]:active { background-color: #c9c9c9; }
   </style>
   <script type="text/javascript" >
   const remote = require("electron").remote;
@@ -306,7 +331,77 @@
       remoteMainWindow().create().then((id)=>{ passwordList.addNew(id) })
     });
     $("#menu-search").addEventListener("click", (e)=>{ remoteMainWindow().moveToSearchWindow() })
+    function getModalDialog(){
+      if(getModalDialog.modalDialog) return getModalDialog.modalDialog;
+      return getModalDialog.modalDialog = new function(){
+        let _background = $("#modal-background");
+        let _dialog = $("#modal-dialog");
+        let _form = $("#modal-dialog-form");
+        let _messageS1 = $("#modal-dialog span.s1");
+        let _errorMessage = $("#modal-dialog span.errors");
+        let _submitBtn = $("#modal-dialog .submit-button");
+        let _cancelBtn = $("#modal-dialog .cancel-button");
 
+        this.show = (message, btnLabel, callback)=>{
+          if(!_background.classList.contains("shown")){
+            _background.style["background-color"] = "rgba(0,0,0,0)";
+            _background.classList.add("shown");
+          }
+          if(!_dialog.classList.contains("shown")){ _dialog.classList.add("shown") }
+          _errorMessage.innerHTML = "";
+          _messageS1.innerHTML = message;
+          _submitBtn.value = btnLabel;
+          this.callback = callback;
+          this.getInput(".email").value = "";
+          this.getInput(".password").value = "";
+          setTimeout(()=>{
+            _background.style["background-color"] = "rgba(0,0,0,0.1)";
+            this.getInput(".email").focus();
+          }, 0);
+        };
+        this.closeDialog = ()=>{
+          if(_dialog.classList.contains("shown")){ _dialog.classList.remove("shown")  }
+        };
+        this.clearBackground = ()=>{
+          if(_background.classList.contains("shown")){ _background.classList.remove("shown")  }
+          this.callback = undefined;
+        };
+        this.getInput = (selector)=>{
+          return $(`#modal-dialog input${selector}`)
+        }
+        this.setError = (message)=>{ _errorMessage.innerHTML = message + "<br>" }
+        this.handleEvent = (e)=>{ e.stopPropagation(); e.preventDefault(); }
+        this.close = ()=>{ this.closeDialog(); this.clearBackground(); }
+        _submitBtn.addEventListener("click", (e)=>{ if(this.callback) this.callback(e); });
+        _cancelBtn.addEventListener("click", (e)=>{ this.handleEvent(e); this.close(); });
+        _cancelBtn.addEventListener("keydown", (e)=>{ if(e.code == "Enter"){ this.handleEvent(e); this.close() } });
+        _form.addEventListener("keydown", (e)=>{ if(e.code == "Enter" && this.callback) this.callback(e); });
+      };
+    }
+    $("#menu-import").addEventListener("click", (e)=>{
+      getModalDialog().show("Import and replace all by passwords in JSON fifle, ", "Import!", (e)=>{
+      })
+    })
+    $("#menu-export").addEventListener("click", (e)=>{
+      let modalDialog = getModalDialog();
+      modalDialog.show("Export all passwords as encrypted JSON file, ", "Export!", (e)=>{
+        modalDialog.handleEvent(e);
+        remoteMainWindow()
+        .authenticate(modalDialog.getInput(".email").value, modalDialog.getInput(".password").value)
+        .then(()=>{
+          modalDialog.closeDialog();
+          return remoteMainWindow().export(modalDialog.getInput(".password").value);
+        })
+        .then(()=>{ modalDialog.clearBackground() })
+        .catch((err)=>{
+          if(err == "auth failure"){
+            modalDialog.setError('Your email or password did not match registered one.');
+          }else{
+            throw err;
+          }
+        })
+      })
+    })
     remoteMainWindow().showOnReady();
   });
   </script>
@@ -422,6 +517,30 @@
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+    <div id="modal-background">
+      <div id="modal-dialog">
+        <div class="inner">
+          <form id="modal-dialog-form" >
+            <div class="narrow">
+              <span class="errors"></span>
+              <span class="s1"></span><br>
+              <span class="s2">Please input master password.</span></div>
+              <div>
+                <span class="title">email</span>
+                <input type="text" class="text-field email" placeholder="email address">
+              </div>
+              <div>
+                <span class="title">password</span>
+                <input type="password" class="text-field password" placeholder="password" >
+              </div>
+              <div class="button-area">
+                <input type="button" class="submit-button" value="import">
+                <input type="button" class="cancel-button" value="cancel">
+              </div>
+            </form>
+          </div>
       </div>
     </div>
   </body>

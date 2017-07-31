@@ -53,6 +53,9 @@ class DBConnection {
     return this.allAsPromise("SELECT * FROM pwstore WHERE id = ?", [ id ])
     .then((rows)=>{ return rows && rows[0] })
   }
+  findAll(){
+    return this.allAsPromise("SELECT * FROM pwstore ORDER BY id")
+  }
   create(values){
     let columns = this.getEditableColumns();
     return this.runAsPromise(
