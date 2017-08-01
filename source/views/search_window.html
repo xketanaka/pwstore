@@ -111,14 +111,12 @@
           this.unSelect(results[selectedIndex]);
         }
       }
-      this.enter = (shiftKey, altKey, ctrlKey)=>{
+      this.enter = (shiftKey)=>{
         let selected = this.results().filter(obj => obj.className == "selected")[0];
         if(!selected) return;
 
         let target =  "password";
         if(shiftKey){ target = "account" }
-        if(altKey){   target = target + "_2nd" }
-        if(ctrlKey){  target = target + "_3rd" }
 
         remoteSearchWindow().copy(selected.id.match(/password_(.*)$/)[1], target)
         .then((result)=>{
@@ -187,7 +185,6 @@
       }
       if(e.target.tagName == "SPAN" && e.target.className == "right-btn"){
         // TODO 詳細ボタンクリック時の挙動
-        console.log("click right-btn");
       }
     })
     remoteSearchWindow().showOnReady();

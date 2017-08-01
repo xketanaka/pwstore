@@ -21,7 +21,6 @@ class MainWindow {
       // ブラウザウィンドウの作成
       this.browserWindow = this.windowManager.createBrowserWindow(Object.assign({ show: false }, this.defaultSize));
     }
-
     this.browserWindow.loadURL(pwstore.viewURL("views/main_window.html"));
   }
   get status(){
@@ -45,12 +44,12 @@ class MainWindow {
   get(id){
     return this.appContext.database.getConnection()
     .then((conn)=>{
-      return conn.find(id).then((password)=>{
-        return Object.assign(password, {
-          password:     this.appContext.encryptor.decrypt(password.password),
-          password_2nd: this.appContext.encryptor.decrypt(password.password_2nd),
-          password_3rd: this.appContext.encryptor.decrypt(password.password_3rd),
-        })
+      return conn.find(id).then((pwstore)=>{
+        pwstore.password = this.appContext.encryptor.decrypt(pwstore.password);
+        (pwstore.extras || []).filter(extra => extra.encrypted).forEach((extra)=>{
+          extra.value = this.appContext.encryptor.decrypt(extra.value);
+        });
+        return pwstore;
       })
     })
   }
@@ -58,10 +57,7 @@ class MainWindow {
     return this.appContext.database.getConnection()
     .then((conn)=>{
       let blankPassword = this.appContext.encryptor.encrypt("");
-      return conn.create({
-        status: this.status.active,
-        password: blankPassword, password_2nd: blankPassword, password_3rd: blankPassword,
-      })
+      return conn.create({ status: this.status.active, password: blankPassword })
     })
   }
   delete(id){
@@ -74,14 +70,32 @@ class MainWindow {
     // TODO: validation
     debug("register(input:" + JSON.stringify(input));
 
-    // encrypt
-    ['password', 'password_2nd', 'password_3rd'].filter(attrName => attrName in input).forEach((attrName)=>{
-      Object.assign(input, { [attrName]: this.appContext.encryptor.encrypt(input[attrName]) });
-    })
-
     return this.appContext.database.getConnection()
     .then((conn)=>{
+      // encrypt
+      if(input.password){
+        Object.assign(input, { password: this.appContext.encryptor.encrypt(input.password) });
+      }
       return conn.update(id, input)
+      .then(()=>{
+        return Promise.all((input.extras || []).map((extra)=>{
+          if(extra.encrypted){
+            Object.assign(extra, { value: this.appContext.encryptor.encrypt(extra.value) });
+          }
+          return conn.createExtra(id, extra.sequence_no, extra)
+        }))
+      })
+    })
+  }
+  deleteExtra(id, seqNo){
+    let messageContent = { message: "Delete this Extra filed, OK?", buttons: ["Cancel", "Delete!"] };
+    if(electron.dialog.showMessageBox(messageContent) == 0)
+      return Promise.reject("cancelled");
+
+    seqNo = parseInt(seqNo);
+    return this.appContext.database.getConnection()
+    .then((conn)=>{
+      return conn.deleteExtra(id, seqNo)
     })
   }
   authenticate(email, password){
@@ -110,12 +124,21 @@ class MainWindow {
     .then((rows)=>{
       // convert to JSON
       let rowsString = rows.map((row)=>{
-        return JSON.stringify(Object.keys(row).reduce((sum,key)=>{
-          if(row[key] != null){
-            sum[key] = key.match(/password/) ? this.appContext.encryptor.decrypt(row[key]) : row[key];
-          }
+        let outputObj = Object.keys(row)
+        .filter(key => key != "extras" && row[key] != null)
+        .reduce((sum,key)=>{
+          sum[key] = key == "password" ? this.appContext.encryptor.decrypt(row[key]) : row[key];
           return sum;
-        }, {}));
+        }, {});
+
+        (row.extras || []).reduce((sum, extra)=>{
+          sum[`extra${extra.sequence_no}_key_name`] = extra.key_name;
+          sum[`extra${extra.sequence_no}_value`] =
+            extra.encrypted ? this.appContext.encryptor.decrypt(extra.value) : extra.value;
+          return sum;
+        }, outputObj);
+
+        return JSON.stringify(outputObj);
       }).join(",\n");
 
       let jsonString = `{"entries":[\n${rowsString}\n]}`;

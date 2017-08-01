@@ -42,18 +42,22 @@ class Database {
         id integer primary key autoincrement,
         service_name text,
         account text,
-        account_2nd text,
-        account_3rd text,
         password text,
-        password_2nd text,
-        password_3rd text,
         url text,
         note text,
         status integer,
         keyword text,
         category integer
       )`;
-      let create2 = `create table category (
+      let create2 = `create table pwstore_extra (
+        id integer primary key autoincrement,
+        pwstore_id integer,
+        sequence_no integer,
+        key_name text,
+        value text,
+        encrypted integer
+      )`;
+      let create3 = `create table category (
         id integer primary key autoincrement,
         name text,
         display_order integer
@@ -66,7 +70,10 @@ class Database {
           if(err) return reject(err);
           db.run(create2, (err)=>{
             if(err) return reject(err);
-            return resolve(db);
+            db.run(create3, (err)=>{
+              if(err) return reject(err);
+              return resolve(db);
+            })
           })
         });
       });

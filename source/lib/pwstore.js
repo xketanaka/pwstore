@@ -19,7 +19,9 @@ class PwStore {
   initialize(force = false){
     if(!config.initialized) return;
     if(!this.appContext.database || force){
-      this.appContext.database = new PwStore.Database(config.databaseFile, config.dbEncryptionKey)
+      if(config.databaseFile && config.dbEncryptionKey){
+        this.appContext.database = new PwStore.Database(config.databaseFile, config.dbEncryptionKey)
+      }
     }
     if(!this.appContext.encryptor || force){
       this.appContext.encryptor = new PwStore.Encryptor(config.encryptionKey);

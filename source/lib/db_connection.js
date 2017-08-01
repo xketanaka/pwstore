@@ -51,10 +51,22 @@ class DBConnection {
   }
   find(id){
     return this.allAsPromise("SELECT * FROM pwstore WHERE id = ?", [ id ])
-    .then((rows)=>{ return rows && rows[0] })
+    .then((rows)=>{
+      if(rows && rows[0]){
+        return this.findExtra(rows[0]);
+      }
+    })
   }
   findAll(){
     return this.allAsPromise("SELECT * FROM pwstore ORDER BY id")
+    .then((rows)=>{
+      return Promise.all(rows.map((row)=>{ return this.findExtra(row) }));
+    })
+  }
+  findExtra(row){
+    let sql = "SELECT * FROM pwstore_extra where pwstore_id = $id ORDER BY sequence_no";
+    return this.allAsPromise(sql, { $id: row.id })
+    .then((extras)=>{ row.extras = extras; return row })
   }
   create(values){
     let columns = this.getEditableColumns();
@@ -65,20 +77,18 @@ class DBConnection {
     .then((statement)=>{ return statement.lastID })
   }
   update(id, values){
-    let columns = this.getEditableColumns();
-    let set = Object.keys(values).filter(k => columns.includes(k)).map(k => `${k} = $${k}`).join(", ");
-    let params = Object.keys(values).reduce((sum, k)=>{ sum['$'+k] = values[k]; return sum }, { $id: id })
+    let targetColumns = Object.keys(values).filter(k => this.getEditableColumns().includes(k))
+    if(targetColumns.length == 0) return Promise.resolve();
+
+    let set = targetColumns.map(k => `${k} = $${k}`).join(", ");
+    let params = targetColumns.reduce((sum, k)=>{ sum['$'+k] = values[k]; return sum }, { $id: id })
     return this.runAsPromise(`UPDATE pwstore SET ${set} WHERE id = $id`, params)
   }
   getEditableColumns(){
     return [
       "service_name",
       "account",
-      "account_2nd",
-      "account_3rd",
       "password",
-      "password_2nd",
-      "password_3rd",
       "url",
       "note",
       "status",
@@ -87,10 +97,48 @@ class DBConnection {
     ];
   }
   delete(id){
-    return this.runAsPromise("DELETE FROM pwstore WHERE id = $id", { $id: id })
+    return this.runAsPromise("DELETE FROM pwstore_extra WHERE pwstore_id = $id", { $id: id })
+    .then(()=>{
+      return this.runAsPromise("DELETE FROM pwstore WHERE id = $id", { $id: id })
+    })
   }
   categories(){
     return this.allAsPromise("SELECT * FROM category ORDER BY display_order", [])
+  }
+  createExtra(id, sequence_no, values){
+    let sql = "SELECT * FROM pwstore_extra where pwstore_id = $id AND sequence_no = $sequence_no";
+    return this.allAsPromise(sql, { $id: id, $sequence_no: sequence_no })
+    .then((rows)=>{
+      const columns = ["pwstore_id", "sequence_no", "key_name", "value", "encrypted"];
+      let targetColumns = Object.keys(values).filter(k => columns.includes(k));
+      if(rows && rows[0]){
+        let set = targetColumns.map(k => `${k} = $${k}`).join(", ");
+        let params = targetColumns.reduce((sum, k)=>{ sum['$'+k] = values[k]; return sum }, { $id: rows[0].id })
+        return this.runAsPromise(`UPDATE pwstore_extra SET ${set} WHERE id = $id`, params)
+      }else{
+        // CREATE
+        return this.runAsPromise(
+          `INSERT INTO pwstore_extra (${columns.join(",")}) values (${columns.map(c => "?").join(",")})`,
+          [id, sequence_no, values["key_name"], values["value"], values["encrypted"]])
+      }
+    })
+  }
+  deleteExtra(id, sequence_no){
+    let sql = "DELETE FROM pwstore_extra WHERE pwstore_id = $id AND sequence_no = $sequence_no";
+    return this.runAsPromise(sql, { $id: id, $sequence_no: sequence_no })
+    .then(()=>{
+      return this.findExtra({ id: id })
+    })
+    .then((row)=>{
+      return row.extras.filter(extra => extra.sequence_no >= sequence_no).reduce((promise, extra)=>{
+        return promise.then(()=>{
+          return this.runAsPromise(
+            "UPDATE pwstore_extra SET sequence_no = $sequence_no WHERE id = $id",
+            { $id: extra.id, $sequence_no: extra.sequence_no - 1 })
+        })
+      }, Promise.resolve());
+    })
+
   }
   allAsPromise(statement, params){
     debug(`${statement}, ${JSON.stringify(params)}`);
@@ -108,7 +156,7 @@ class DBConnection {
     return new Promise((resolve, reject)=>{
       this.db.run(statement, params, function(err){
         if(err) return reject(err);
-        return resolve(this);
+        return resolve(this); // this: statement object
       });
     });
   }

@@ -48,6 +48,8 @@
     padding: 2px; font-size: small; border: inherit; width: 200px;
   }
   #detail input[readonly], #detail .textarea { border: none; background-color: #fff6fa; }
+  #detail input.short { width: 120px }
+  #detail input.extra-encrypted { padding-left: 5px; height: 10px }
   #detail .invisible { display: none; }
   #detail pre { margin: 0; min-height: 54px; }
   #detail label { font-size: x-small }
@@ -85,11 +87,11 @@
   #modal-dialog input[type=button]:active { background-color: #c9c9c9; }
   </style>
   <script type="text/javascript" >
+  window.jQuery = window.$ = require("./js/jquery2.min");
+
   const remote = require("electron").remote;
   const pwstore = remote.require("./lib/pwstore");
   function remoteMainWindow(){ return pwstore.getWindow("MainWindow") }
-  function $(selector){ return document.querySelector(selector) }
-  function $all(selector){ return Util.Array(document.querySelectorAll(selector)) }
 
   document.addEventListener("DOMContentLoaded", ()=>{
 
@@ -99,23 +101,20 @@
         let ul = $("#categories ul");
         remoteMainWindow().categories()
         .then((categories)=>{
-          categories.filter((category)=>{ return !$(`#category_${category.id}`) })
-          .forEach((category)=>{
-            let element = document.createElement("li");
-            element.className = "nest";
-            element.id = `category_${category.id}`;
-            element.innerHTML = `<span class="bold">-</span> ${Util.esc(category.name)}`;
-            ul.appendChild(element);
+          categories.filter((category)=>{ return $(`#category_${category.id}`).length == 0 })
+          .forEach((c)=>{
+            let cname = Util.esc(c.name);
+            ul.append(`<li class="nest" id="category_${c.id}" ><span class="bold">-</span> ${cname}</li>`);
           })
         })
       };
       this.categorySelect = (category)=>{
         remoteMainWindow().list(category)
         .then((passwords)=>{
-          $("#passwords ul").innerHTML = passwords.map((password)=>{
+          $("#passwords ul").html(passwords.map((password)=>{
             let inner = this.generateOneHTML(password.service_name, password.account);
             return `<li id="password_${password.id}" >${inner}</li>`;
-          }).join("");
+          }).join(""));
         })
       };
       this.generateOneHTML = (service_name, account)=>{
@@ -124,273 +123,312 @@
         `<span class="account">${Util.esc(Util.displayString(account, 18)) || ""}</span>`;
       };
       this.adjustSize = ()=>{
-        $("#passwords .area").style.height = (window.innerHeight - 61) + "px"; /* 61 px is nearly menubar height */
+        $("#passwords .area").height((window.innerHeight - 61) + "px"); /* 61 px is nearly menubar height */
       }
       this.update = (values)=>{
-        let id = $("#pwstore_id").value;
+        let id = $("#pwstore_id").val();
         return remoteMainWindow().update(id, values)
         .then(()=>{
           if("service_name" in values){
-            $(`#password_${id} .service`).innerHTML = Util.esc(Util.displayString(values.service_name, 12)) || "";
+            $(`#password_${id} .service`).html(Util.esc(Util.displayString(values.service_name, 12)) || "");
           }
           if("account" in values){
-            $(`#password_${id} .account`).innerHTML = Util.esc(Util.displayString(values.account, 18)) || "";
+            $(`#password_${id} .account`).html(Util.esc(Util.displayString(values.account, 18)) || "");
           }
         })
       };
       this.delete = ()=>{
-        let id = $("#pwstore_id").value;
+        let id = $("#pwstore_id").val();
         return remoteMainWindow().delete(id).then(()=>{
-          let forDelete = $(`#password_${id}`);
-          forDelete.parentNode.removeChild(forDelete);
+          $(`#password_${id}`).remove();
           this.passwordUnSelect()
         });
       };
       // パスワードを未選択状態にする
       this.passwordUnSelect = ()=>{
         let passwordSelected = $("#passwords li.selected");
-        if(passwordSelected) passwordSelected.classList.remove("selected");
+        if(passwordSelected.length == 0) passwordSelected.removeClass("selected");
         // 入力エリアを非表示に
-        $("#detail .area").classList.remove("selected");
+        $("#detail .area").removeClass("selected");
       };
       this.passwordSelect = (li)=>{
         let nowSelected = $("#passwords li.selected");
-        if(nowSelected) nowSelected.classList.remove("selected");
-        li.classList.add("selected");
+        if(nowSelected.length > 0) nowSelected.removeClass("selected");
+        li.addClass("selected");
 
-        let idMatch = li.id.match(/password_(.*)$/);
-
-        return remoteMainWindow().get(idMatch[1])
+        let idMatch = li.attr("id").match(/password_(.*)$/);
+        return this.reloadPasswordInfo(idMatch[1]);
+      };
+      this.reloadPasswordInfo = (id)=>{
+        return remoteMainWindow().get(id)
         .then((password)=>{
-          $("#detail .area").classList.add("selected");
-          $("#pwstore_id").value   = password.id || "";
-          $("#service_name").value = password.service_name || "";
-          $("#account").value      = password.account || "";
-          $("#password").value     = password.password || "";
-          $("#keyword").value      = password.keyword || "";
-          $("#url").value          = password.url || "";
-          $("#note").value         = password.note || "";
-          $("#account_2nd").value  = password.account_2nd || "";
-          $("#account_3rd").value  = password.account_3rd || "";
-          $("#password_2nd").value = password.password_2nd || "";
-          $("#password_3rd").value = password.password_3rd || "";
-          $("#status").value       = password.status || "";
-          $("#category").value     = password.category || "";
-
-          $("#note_display").innerHTML = Util.esc(password.note || "");
-          $("#category_display").value = $all("#category option").filter((op)=>{
-            return op.value == (password.category || "")
-          })[0].innerHTML;
-          $("#status_display").value = $all("#status option").filter((op)=>{
-            return op.value == (password.status || "")
-          })[0].innerHTML;
-
-          $("#show-password-tr").classList[password.password ? "remove" : "add"]("invisible");
-          $("#show-password_2nd-tr").classList[password.password_2nd ? "remove" : "add"]("invisible");
-          $("#show-password_3rd-tr").classList[password.password_3rd ? "remove" : "add"]("invisible");
+          $("#detail .area").addClass("selected");
+          $("#pwstore_id").val(   password.id || "" );
+          $("#service_name").val( password.service_name || "" );
+          $("#account").val(      password.account || "" );
+          $("#password").val(     password.password || "" );
+          $("#keyword").val(      password.keyword || "" );
+          $("#url").val(          password.url || "" );
+          $("#note").val(         password.note || "" );
+          $("#status").val(       password.status || "" );
+          $("#category").val(     password.category || "" );
+          $("#show-password-tr")[password.password ? "removeClass" : "addClass"]("invisible");
+          // textarea
+          $("#note_display").html(    Util.esc(password.note || "") );
+          // selectbox
+          $("#category_display").val(
+            $("#category option").filter(function(){ return this.value == (password.category || "") })[0].innerHTML);
+          $("#status_display").val(
+            $("#status option").filter(function(){ return this.value == (password.status || "") })[0].innerHTML );
+          // extra
+          $("tr.extra-added").remove();
+          $("#extra1").prop("checked", false);
+          password.extras.forEach((extra)=>{
+            this.addExtra(extra.sequence_no, extra.encrypted);
+            $(`#extra${extra.sequence_no}`).prop("checked", true);
+            $(`#extra${extra.sequence_no}-key_name`).val(extra.key_name);
+            $(`#extra${extra.sequence_no}-value`).val(extra.value);
+          })
         })
       };
       this.addNew = (id)=>{
-        let element = document.createElement("li");
-        element.id = `password_${id}`;
-        element.innerHTML = this.generateOneHTML("", "");
-        $("#passwords ul").appendChild(element);
+        $("#passwords ul").append(`<li id="password_${id}">${this.generateOneHTML("", "")}</li>`);
 
-        this.passwordSelect(element).then(()=>{ Util.triggerEvent($("#service_name"), "click"); })
+        this.passwordSelect($(`#password_${id}`))
+        .then(()=>{ $("#service_name").trigger("click"); })
       };
+      this.addExtra = (seqNo, encrypted = false)=>{
+        seqNo = parseInt(seqNo);
+        let inputTag1 = `<input type="text" id="extra${seqNo}-key_name" value="" readonly="readonly" >`;
+        let inputTag2 = `<input type="${encrypted ? "password": "text"}" id="extra${seqNo}-value" class="short" value="" readonly="readonly" >`;
+        let inputTag3 = `<input type="checkbox" id="extra${1 + seqNo}" class="extra-checkbox">`;
+        let inputTag4 = `<input type="checkbox" class="extra-encrypted" id="extra${seqNo}-encrypted" ${encrypted ? "checked" : ""}>`;
+
+        $(`#extra${seqNo}`).parents("tr").after(
+          `<tr class="extra-added"><th>name</th><td>${inputTag1}</td></tr>` +
+          `<tr class="extra-added"><th>value</th><td>${inputTag2}<label>${inputTag4}encrypted</label></td></tr>` +
+          `<tr class="extra-added"><th>extra - ${1 + seqNo}</th><td><label>${inputTag3}enabled</label></td></tr>`
+        );
+      }
+      this.deleteExtra = (seqNo)=>{
+        let id = $("#pwstore_id").val();
+        return remoteMainWindow().deleteExtra(id, seqNo)
+        .then(()=>{
+          return this.reloadPasswordInfo(id);
+        })
+      }
     })();
 
     /// 初期化処理 ///
     passwordList.loadCategories();
     passwordList.categorySelect();
-//    passwordList.adjustSize();
+    passwordList.adjustSize();
     ///
     window.addEventListener("resize", (e)=>{ passwordList.adjustSize() })
 
     /// カテゴリリスト選択のコールバック
-    $("#categories ul").addEventListener("click", (e)=>{
-      let li = e.target;
-      if(e.target.tagName != "LI") return;
-      if(li.classList.contains("selected")) return;
+    $(document).on("click", "#categories ul li", function(e){
+      let li = $(this);
+      if(li.hasClass("selected")) return;
 
-      let idMatch = li.id.match(/category_(.*)$/)
+      let idMatch = li.attr("id") && li.attr("id").match(/category_(.*)$/)
       passwordList.categorySelect(idMatch && idMatch[1]);
 
       let nowSelected = $("#categories li.selected")
-      if(nowSelected) nowSelected.classList.remove("selected");
-      li.classList.add("selected");
+      if(nowSelected.length > 0) nowSelected.removeClass("selected");
+      li.addClass("selected");
       // 未選択にする
       passwordList.passwordUnSelect();
     })
 
     /// パスワードリスト選択の"click"コールバック
-    $("#passwords ul").addEventListener("click", (e)=>{
-      if(e.target.tagName != "LI" && e.target.tagName != "SPAN") return;
-      let li = e.target.tagName == "LI" ? e.target : e.target.parentNode;
-      if(li.classList.contains("selected")) return;
+    $(document).on("click", "#passwords ul li, #passwords ul li span", function(e){
+      let li = $(this).prop("tagName") == "LI" ? $(this) : $(this).parent();
+      if(li.hasClass("selected")) return;
 
       passwordList.passwordSelect(li);
     })
-    $("body").addEventListener("keydown", (e)=>{
+    // パスワード選択（上下キー）
+    $("body").on("keydown", (e)=>{
       if(document.activeElement.tagName != "BODY") return;
-      if(e.code != "ArrowUp" && e.code != "ArrowDown") return;
-      if(!$("#passwords li.selected")) return;
+      if(e.key != "ArrowUp" && e.key != "ArrowDown") return;
+      if($("#passwords li.selected").length == 0) return;
 
       let selected = $("#passwords li.selected");
-      let li = e.code == "ArrowUp" ? selected.previousElementSibling : selected.nextElementSibling;
-      if(li){
-        passwordList.passwordSelect(li);
-      }
+      let li = e.key == "ArrowUp" ? selected.prev() : selected.next();
+      li && passwordList.passwordSelect(li);
     })
     /// パスワード入力エリアのコールバック - クリック時に入力可能にする
-    $all("#detail input, #detail .textarea").forEach((input)=>{
-      input.addEventListener("click", (e)=>{
-        if(input.id == "category_display" || input.id == "status_display"){
-          input.classList.add("invisible");
-          let selectTag = $(`#${input.id.replace(/_display/,"")}`);
-          selectTag.classList.remove("invisible");
-          selectTag["data-before-editing"] = selectTag.value;
-          setTimeout(()=>{ selectTag.focus() }, 0);
-        }
-        else if(input.className == "textarea"){
-          input.classList.add("invisible");
-          let textareaTag = $("#detail textarea");
-          textareaTag.classList.remove("invisible");
-          textareaTag["data-before-editing"] = input.innerHTML;
-          setTimeout(()=>{ textareaTag.focus() }, 0);
-        }
-        else if(input.readOnly){
-          input.readOnly = false;
-          input["data-before-editing"] = input.value;
-          input.focus();
-        }
-        e.preventDefault();
-      })
+    $(document).on("click", "#detail input[type=text], #detail input[type=password], #detail .textarea", function(e){
+      let input = $(this);
+      // カテゴリ、ステータスについてはセレクトボックスに置き換える
+      if(input.attr("id") == "category_display" || input.attr("id") == "status_display"){
+        input.addClass("invisible");
+        let selectTag = $(`#${input.attr("id").replace(/_display/,"")}`);
+        selectTag.removeClass("invisible");
+        selectTag.attr("data-before-editing", selectTag.val());
+        setTimeout(()=>{ selectTag.focus() }, 0);
+      }
+      else if(input.prop("className") == "textarea"){
+        input.addClass("invisible");
+        let textareaTag = $("#detail textarea");
+        textareaTag.removeClass("invisible");
+        textareaTag.attr("data-before-editing", input.html());
+        setTimeout(()=>{ textareaTag.focus() }, 0);
+      }
+      else if(input.attr("readonly")){
+        input.attr("readonly", false);
+        input.attr("data-before-editing", input.val());
+        input.focus();
+      }
+      e.preventDefault();
     });
     /// パスワード入力エリアのタブキーの押下のコールバック
-    $all("#detail input, #detail select, #detail textarea").forEach((input)=>{
-      input.addEventListener("keydown", (e)=>{
-        if(e.code != "Tab") return;
-        e.preventDefault();
+    $(document).on("keydown", "#detail input, #detail select, #detail textarea", function(e){
+      let input = $(this);
+      if(e.key != "Tab") return;
+      e.preventDefault();
 
-        let nextTr = (function findNextTr(tr, shiftKey){
-          let nextTr = shiftKey ? tr.previousElementSibling : tr.nextElementSibling;
-          return nextTr && nextTr.classList.contains("unfocus") ? findNextTr(nextTr, shiftKey) : nextTr;
-        })(e.target.parentNode.parentNode, e.shiftKey);
+      let nextTr = (function findNextTr(tr, shiftKey){
+        let nextTr = shiftKey ? tr.prev() : tr.next();
+        return nextTr.length > 0 && nextTr.hasClass("unfocus") ? findNextTr(nextTr, shiftKey) : nextTr;
+      })(input.parents("tr"), e.shiftKey);
 
-        if(!nextTr) return;
-        Array.prototype.slice.call(nextTr.lastElementChild.children).forEach((input)=>{
-          if(input.tagName == "INPUT" || input.classList.contains("textarea")){
-            Util.triggerEvent(input, "click");
-          }
-        })
-      });
+      if(nextTr.length == 0) return;
+      let nextInput = nextTr.find("input[type=text], input[type=password], .textarea");
+      if(nextInput.length > 0){
+        nextInput.trigger("click");
+      }else if(nextTr.find("input[type=checkbox]").length > 0){
+        setTimeout(()=>{ nextTr.find("input[type=checkbox]").focus() }, 0);
+      }
     })
     /// パスワード入力エリアの"inputタグ"はEnterキーでフォーカスアウトする
-    $all("#detail input").forEach((input)=>{
-      // Enterキーでフォーカスアウトする
-      input.addEventListener("keypress", (e)=>{ if(e.code == "Enter") Util.triggerEvent(input, "blur") })
+    $(document).on("keypress", "#detail input", function(e){
+      if(e.key == "Enter") $(this).trigger("blur");
     });
     /// パスワード入力エリアの"inputタグ"のフォーカスアウトコールバック - DBを更新し、参照モードにする
-    $all("#detail input").forEach((input)=>{
-      input.addEventListener("blur", (e)=>{
-        let readOnlyTrue = ()=>{ input.readOnly = true; };
-        if(input.classList.contains("display-only") || input.value == input["data-before-editing"]){
-          readOnlyTrue();
+    $(document).on("blur", "#detail input[type=text], #detail input[type=password]", function(e){
+      let input = $(this);
+      if(input.hasClass("display-only") || input.val() == input.attr("data-before-editing")){
+        input.attr("readonly", true);
+      }else{
+        let updateValues = {};
+        if(input.attr("id").match(/extra[0-9]+\-/)){
+          let [ignore, sequenceNo, attrName] = input.attr("id").match(/extra([0-9]+)\-(.*)/);
+          updateValues.extras = [ { sequence_no: sequenceNo, [attrName]: input.val() } ];
         }else{
-          passwordList.update({ [input.id]: input.value }).then(readOnlyTrue);
+          updateValues[input.attr("id")] = input.val();
         }
-      })
+        passwordList.update(updateValues).then(()=>{ input.attr("readonly", true) });
+      }
     })
     /// パスワード入力エリアの"selectタグ"のフォーカスアウトコールバック - DBを更新し、参照モードにする
-    $all("#category, #status").forEach((select)=>{
-      select.addEventListener("blur", (e)=>{
-        let listToTextField = ()=>{
-          $(`#${select.id}_display`).value = $all(`#${select.id} option`).filter(o => o.selected)[0].innerHTML;
-          select.classList.add("invisible");
-          $(`#${select.id}_display`).classList.remove("invisible");
-        }
-        select.value == select["data-before-editing"]?
-          listToTextField(): passwordList.update({ [select.id]: select.value }).then(listToTextField)
-      })
+    $(document).on("blur", "#category, #status", function(e){
+      let select = $(this);
+      let listToTextField = ()=>{
+        select.addClass("invisible");
+        $(`#${select.attr("id")}_display`).val( $(`#${select.attr("id")} option:selected`).html() );
+        $(`#${select.attr("id")}_display`).removeClass("invisible");
+      }
+      select.val() == select.attr("data-before-editing") ?
+        listToTextField(): passwordList.update({ [select.attr("id")]: select.val() }).then(listToTextField)
     })
     /// パスワード入力エリアの"textareaタグ"のフォーカスアウトコールバック - DBを更新し、参照モードにする
-    $("#detail textarea").addEventListener("blur", (e)=>{
+    $(document).on("blur", "#detail textarea", (e)=>{
       let textAreaToPre = ()=>{
-        e.target.classList.add("invisible");
-        $("#detail .textarea").classList.remove("invisible");
-        $("#detail .textarea").innerHTML = e.target.value;
+        $(e.target).addClass("invisible");
+        $("#detail .textarea").removeClass("invisible");
+        $("#detail .textarea").html($(e.target).val());
       }
-      e.target.value == e.target["data-before-editing"]?
-        textAreaToPre() : passwordList.update({ note: e.target.value }).then(textAreaToPre);
+      $(e.target).val() == $(e.target).attr("data-before-editing") ?
+        textAreaToPre() : passwordList.update({ note: $(e.target).val() }).then(textAreaToPre);
+    })
+    // extra項目の有効化・無効化チェックボックス
+    $(document).on("click", "#detail .extra-checkbox", function(e){
+      let seqNo = $(this).attr("id").match(/extra([0-9]+)/)[1]
+      if($(this).prop("checked")){
+        // extra enabled!
+        if($(`#extra${seqNo}-key_name`).length == 0){
+          passwordList.addExtra(seqNo);
+          setTimeout(()=>{ $(`#extra${seqNo}-key_name`).trigger("click") }, 0);
+        }
+      }else{
+        // extra disabled!
+        passwordList.deleteExtra(seqNo).catch((err)=>{
+          if(err != "cancelled") throw err;
+          $(this).prop("checked", true);
+          e.preventDefault();
+        });
+      }
+    })
+    // extra項目の暗号化チェックボックス
+    $(document).on("click", "#detail .extra-encrypted", function(e){
+      let seqNo = $(this).attr("id").match(/extra([0-9]+)-encrypted/)[1]
+      let values = { sequence_no: seqNo, encrypted: $(this).prop("checked") ? 1 : 0,
+                     value: $(`#extra${seqNo}-value`).val()  };
+      passwordList.update({ extras: [values] }).then(()=>{
+        $(`#extra${seqNo}-value`).attr("type", $(this).prop("checked") ? "password" : "text")
+      });
     })
     /// パスワード入力エリアの削除ボタンコールバック
-    $("#detail .delete-btn").addEventListener("click", (e)=>{ passwordList.delete(); });
+    $(document).on("click", "#detail .delete-btn", (e)=>{ passwordList.delete(); });
+    // パスワードを表示するボタンコールバック
+    $(document).on("click", "#show-password-tr input[type=checkbox]", function(e){
+      $("#password").attr("type", $(this).prop("checked") ? "text" : "password");
+    });
     /// メニューボタンのクリック時のコーづバック
-    $("#menu-new").addEventListener("click", (e)=>{
+    $("#menu-new").on("click", (e)=>{
       remoteMainWindow().create().then((id)=>{ passwordList.addNew(id) })
     });
-    $("#menu-search").addEventListener("click", (e)=>{ remoteMainWindow().moveToSearchWindow() })
+    $("#menu-search").on("click", (e)=>{ remoteMainWindow().moveToSearchWindow() })
     function getModalDialog(){
       if(getModalDialog.modalDialog) return getModalDialog.modalDialog;
       return getModalDialog.modalDialog = new function(){
         let _background = $("#modal-background");
         let _dialog = $("#modal-dialog");
-        let _form = $("#modal-dialog-form");
-        let _messageS1 = $("#modal-dialog span.s1");
-        let _errorMessage = $("#modal-dialog span.errors");
-        let _submitBtn = $("#modal-dialog .submit-button");
-        let _cancelBtn = $("#modal-dialog .cancel-button");
-
         this.show = (message, btnLabel, callback)=>{
-          if(!_background.classList.contains("shown")){
-            _background.style["background-color"] = "rgba(0,0,0,0)";
-            _background.classList.add("shown");
+          if(!_background.hasClass("shown")){
+            _background.css("background-color", "rgba(0,0,0,0)");
+            _background.addClass("shown");
           }
-          if(!_dialog.classList.contains("shown")){ _dialog.classList.add("shown") }
-          _errorMessage.innerHTML = "";
-          _messageS1.innerHTML = message;
-          _submitBtn.value = btnLabel;
+          if(!_dialog.hasClass("shown")){ _dialog.addClass("shown") }
+          $("#modal-dialog span.errors").html("");
+          $("#modal-dialog span.s1").html(message);
+          $("#modal-dialog .submit-button").val( btnLabel );
+          this.find("input.email").val("");
+          this.find("input.password").val("");
           this.callback = callback;
-          this.getInput(".email").value = "";
-          this.getInput(".password").value = "";
           setTimeout(()=>{
-            _background.style["background-color"] = "rgba(0,0,0,0.1)";
-            this.getInput(".email").focus();
+            _background.css("background-color", "rgba(0,0,0,0.1)");
+            this.find("input.email").focus();
           }, 0);
         };
-        this.closeDialog = ()=>{
-          if(_dialog.classList.contains("shown")){ _dialog.classList.remove("shown")  }
-        };
-        this.clearBackground = ()=>{
-          if(_background.classList.contains("shown")){ _background.classList.remove("shown")  }
-          this.callback = undefined;
-        };
-        this.getInput = (selector)=>{
-          return $(`#modal-dialog input${selector}`)
-        }
-        this.setError = (message)=>{ _errorMessage.innerHTML = message + "<br>" }
-        this.handleEvent = (e)=>{ e.stopPropagation(); e.preventDefault(); }
+        this.closeDialog = ()=>{ _dialog.removeClass("shown")  }
+        this.clearBackground = ()=>{ _background.removeClass("shown"); this.callback = undefined; }
+        this.find = (selector)=>{ return $("#modal-dialog").find(selector) }
+        this.setError = (message)=>{ $("#modal-dialog span.errors").html(message + "<br>") }
+        this.stopEvent = (e)=>{ e.stopPropagation(); e.preventDefault(); }
         this.close = ()=>{ this.closeDialog(); this.clearBackground(); }
-        _submitBtn.addEventListener("click", (e)=>{ if(this.callback) this.callback(e); });
-        _cancelBtn.addEventListener("click", (e)=>{ this.handleEvent(e); this.close(); });
-        _cancelBtn.addEventListener("keydown", (e)=>{ if(e.code == "Enter"){ this.handleEvent(e); this.close() } });
-        _form.addEventListener("keydown", (e)=>{ if(e.code == "Enter" && this.callback) this.callback(e); });
+        $("#modal-dialog .submit-button").on("click", (e)=>{ if(this.callback) this.callback(e); });
+        $("#modal-dialog .cancel-button").on("click", (e)=>{ this.stopEvent(e); this.close(); });
+        $("#modal-dialog .cancel-button").on("keydown", (e)=>{ if(e.key == "Enter"){ this.stopEvent(e); this.close() } });
+        $("#modal-dialog-form").on("keydown", (e)=>{ if(e.key == "Enter" && this.callback) this.callback(e); });
       };
     }
-    $("#menu-import").addEventListener("click", (e)=>{
+    $("#menu-import").on("click", (e)=>{
       getModalDialog().show("Import and replace all by passwords in JSON fifle, ", "Import!", (e)=>{
+        // TODO: import
       })
     })
-    $("#menu-export").addEventListener("click", (e)=>{
+    $("#menu-export").on("click", (e)=>{
       let modalDialog = getModalDialog();
       modalDialog.show("Export all passwords as encrypted JSON file, ", "Export!", (e)=>{
-        modalDialog.handleEvent(e);
+        modalDialog.stopEvent(e);
         remoteMainWindow()
-        .authenticate(modalDialog.getInput(".email").value, modalDialog.getInput(".password").value)
+        .authenticate(modalDialog.find("input.email").val(), modalDialog.find("input.password").val())
         .then(()=>{
           modalDialog.closeDialog();
-          return remoteMainWindow().export(modalDialog.getInput(".password").value);
+          return remoteMainWindow().export(modalDialog.find("input.password").val());
         })
         .then(()=>{ modalDialog.clearBackground() })
         .catch((err)=>{
@@ -442,22 +480,22 @@
         <table>
           <tbody>
             <tr>
-              <th>service</th><td><input type="text" id="service_name" value="Amazon" readonly="readonly" ></td>
+              <th>service</th><td><input type="text" id="service_name" value="" readonly="readonly" ></td>
             </tr>
             <tr>
-              <th>account</th><td><input type="text" id="account" value="tanaka_ken@nifty.com" readonly="readonly" ></td>
+              <th>account</th><td><input type="text" id="account" value="" readonly="readonly" ></td>
             </tr>
             <tr>
-              <th>password</th><td><input type="password" id="password" value="value" readonly="readonly" ></td>
+              <th>password</th><td><input type="password" id="password" value="" readonly="readonly" ></td>
             </tr>
             <tr class="unfocus" id="show-password-tr">
               <td></td><td><label><input type="checkbox" >show password</label></td>
             </tr>
             <tr>
-              <th>URL</th><td><input type="text" id="url" value="https://www.amazon.com" readonly="readonly" ></td>
+              <th>URL</th><td><input type="text" id="url" value="" readonly="readonly" ></td>
             </tr>
             <tr>
-              <th>keywords</th><td><input type="text" id="keyword" value="amazon" readonly="readonly" ></td>
+              <th>keywords</th><td><input type="text" id="keyword" value="" readonly="readonly" ></td>
             </tr>
             <tr>
               <th>category</th>
@@ -465,7 +503,6 @@
                 <input type="text" class="display-only" id="category_display" value="<none>" readonly="readonly" >
                 <select class="invisible" id="category">
                   <option value="">- none -</option>
-                  <option value="1">business</option>
                 </select>
               </td>
             </tr>
@@ -495,22 +532,8 @@
               </td>
             </tr>
             <tr>
-              <th>2nd account</th><td><input type="text" id="account_2nd" value="microstoria@docomo.ne.jp" readonly="readonly" ></td>
-            </tr>
-            <tr>
-              <th>3rd account</th><td><input type="text" id="account_3rd" value="" readonly="readonly" ></td>
-            </tr>
-            <tr>
-              <th>2nd password</th><td><input type="password" id="password_2nd" value="pincode" readonly="readonly" ></td>
-            </tr>
-            <tr class="unfocus" id="show-password_2nd-tr">
-              <td></td><td><label><input type="checkbox" >show 2nd password</label></td>
-            </tr>
-            <tr>
-              <th>3rd password</th><td><input type="password" id="password_3rd" value="" readonly="readonly" ></td>
-            </tr>
-            <tr class="unfocus" id="show-password_3rd-tr">
-              <td></td><td><label><input type="checkbox" >show 3rd password</label></td>
+              <th>extra - 1</th>
+              <td><label><input type="checkbox" id="extra1" class="extra-checkbox">enabled</label></td>
             </tr>
             <tr class="unfocus">
               <th></th><td><span class="delete-btn"><i class="fa fa-close"></i>Delete</span></td>

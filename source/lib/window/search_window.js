@@ -39,13 +39,13 @@ class SearchWindow {
     .then((conn)=>{
       return conn.find(id)
     })
-    .then((password)=>{
-      if(!password || !password[target]) return;
+    .then((pwstore)=>{
+      if(!pwstore || !pwstore[target]) return;
 
       if(target.match(/password/)){
-        electron.clipboard.writeText(this.appContext.encryptor.decrypt(password[target]));
+        electron.clipboard.writeText(this.appContext.encryptor.decrypt(pwstore[target]));
       }else{
-        electron.clipboard.writeText(password[target]);
+        electron.clipboard.writeText(pwstore[target]);
       }
       return true;
     })
