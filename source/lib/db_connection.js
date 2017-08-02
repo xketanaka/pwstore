@@ -138,7 +138,12 @@ class DBConnection {
         })
       }, Promise.resolve());
     })
-
+  }
+  beforeImport(){
+    return this.runAsPromise("DELETE FROM pwstore_extra", {})
+    .then(()=>{
+      return this.runAsPromise("DELETE FROM pwstore", {})
+    })
   }
   allAsPromise(statement, params){
     debug(`${statement}, ${JSON.stringify(params)}`);

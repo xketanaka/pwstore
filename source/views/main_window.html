@@ -105,6 +105,9 @@
           .forEach((c)=>{
             let cname = Util.esc(c.name);
             ul.append(`<li class="nest" id="category_${c.id}" ><span class="bold">-</span> ${cname}</li>`);
+            if(!$("#category option").map(function(){ return this.value }).get().includes(c.id)){
+              $("#category").append(`<option value="${c.id}">${cname}</option>`);
+            }
           })
         })
       };
@@ -416,8 +419,20 @@
       };
     }
     $("#menu-import").on("click", (e)=>{
-      getModalDialog().show("Import and replace all by passwords in JSON fifle, ", "Import!", (e)=>{
-        // TODO: import
+      let modalDialog = getModalDialog();
+      modalDialog.show("Import and replace all by passwords in JSON fifle, ", "Import!", (e)=>{
+        modalDialog.stopEvent(e);
+        remoteMainWindow()
+        .authenticate(modalDialog.find("input.email").val(), modalDialog.find("input.password").val())
+        .then(()=>{
+          modalDialog.closeDialog();
+          return remoteMainWindow().import();
+        })
+        .then(()=>{ modalDialog.clearBackground() })
+        .catch((err)=>{
+          if(err != "auth failure") throw err;
+          modalDialog.setError('Your email or password did not match registered one.');
+        })
       })
     })
     $("#menu-export").on("click", (e)=>{
@@ -432,11 +447,8 @@
         })
         .then(()=>{ modalDialog.clearBackground() })
         .catch((err)=>{
-          if(err == "auth failure"){
-            modalDialog.setError('Your email or password did not match registered one.');
-          }else{
-            throw err;
-          }
+          if(err != "auth failure") throw err;
+          modalDialog.setError('Your email or password did not match registered one.');
         })
       })
     })

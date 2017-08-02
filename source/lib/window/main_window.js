@@ -135,6 +135,7 @@ class MainWindow {
           sum[`extra${extra.sequence_no}_key_name`] = extra.key_name;
           sum[`extra${extra.sequence_no}_value`] =
             extra.encrypted ? this.appContext.encryptor.decrypt(extra.value) : extra.value;
+          sum[`extra${extra.sequence_no}_encrypted`] = extra.encrypted;
           return sum;
         }, outputObj);
 
@@ -157,6 +158,59 @@ class MainWindow {
     .catch((err)=>{
       if(err == "skip") return;
       throw err;
+    })
+  }
+  import(){
+    let options = {
+      title: 'Choose a JSON file which contains Password info',
+      buttonLabel: '選択',
+    };
+    let connection, parsedObject;
+    return new Promise((resolve, reject)=>{
+      electron.dialog.showOpenDialog(this.appContext.win, options, (files)=>{
+        if(!files) return reject(()=>{ /* nothing todo */ });
+        fs.stat(files[0], (err, stats)=>{ if(err) reject(err); else resolve(files[0]); })
+      })
+    })
+    .then((filepath)=>{
+      return new Promise((resolve, reject)=>{
+        fs.readFile(filepath, 'utf8', (err, data)=>{
+          try {
+            err ? reject(err) : resolve(JSON.parse(data));
+          }catch(e){
+            reject(()=>{ electron.dialog.showErrorBox("Parse Error", "Selected File is not a JSON Format.") })
+          }
+        })
+      })
+    })
+    .then((object)=>{ parsedObject = object }).then(()=>{
+      // clean DB
+      return this.appContext.database.getConnection()
+      .then((conn)=>{ connection = conn }).then(()=>{ return connection.beforeImport() })
+    })
+    .then(()=>{
+      // import all!
+      return parsedObject.entries.reduce((promise, entry)=>{
+        return promise.then(()=>{
+          if(entry.password){
+            entry.password = this.appContext.encryptor.encrypt(entry.password);
+          }
+          return connection.create(entry).then((id)=>{
+            let promises = [];
+            for(let i = 1; true; i++){
+              if(!(`extra${i}_key_name` in entry)) break;
+              let values = { key_name: entry[`extra${i}_key_name`], encrypted: entry[`extra${i}_encrypted`] };
+              let val = entry[`extra${i}_value`];
+              values.value = values.encrypted == 1 ? this.appContext.encryptor.encrypt(val) : val;
+              promises.push(connection.createExtra(id, i, values));
+            }
+            return Promise.all(promises);
+          })
+        })
+      }, Promise.resolve());
+    })
+    .catch((err)=>{
+      if(typeof err === "function") return err(); else throw err;
     })
   }
   showOnReady(){
