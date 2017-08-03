@@ -5,6 +5,7 @@
   "scripts": {
     "start": "electron .",
     "debug": "DEBUG_LOG=query,app electron .",
+    "sqlite-cli": "electron bin/sqlite_cli.js",
     "prebuild-sqlite3": "npm run install-sqlcipher; npm run re-install-sqlite3; npm run setup-for-build",
     "setup-for-build": "npm run re-install-sqlite3; cd node_modules/sqlite3; npm install; npm run prepublish",
     "install-sqlcipher": "brew install sqlcipher",
