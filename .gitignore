@@ -6,9 +6,12 @@
 
 # local
 /private/
+/icon_originals/
 
 # build
 /pwstore-darwin-x64/
+/pwstore-win32-x64/
+/pwstore-linux-x64/
 
 # OSX
 .DS_Store
