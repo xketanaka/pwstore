@@ -15,6 +15,7 @@ class PwStore {
       this.windowManager = new PwStore.WindowManager(this.appContext);
       this.windowManager.create(config.initialized ? "SearchWindow" : "InitializeWindow");
     })
+    app.on('window-all-closed', ()=>{ app.quit() });
   }
   initialize(force = false){
     if(!config.initialized) return;
