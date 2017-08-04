@@ -23,9 +23,21 @@ if [ "$INI_FILE" != "" ] && [ -f $INI_FILE ]; then
     cp $INI_FILE source/config/app.ini
 fi
 
-[ -d pwstore-darwin-x64 ] && rm -rf pwstore-darwin-x64
+#PLATFORMS=(linux win32 darwin)
+PLATFORMS=(darwin)
+ARCH=x64
 
-source/node_modules/.bin/electron-packager source pwstore --platform=darwin --arch=x64 --app-version=$VERSION
+for PLATFORM in ${PLATFORMS[@]}; do
+
+  if [ -d pwstore-${PLATFORM}-${ARCH} ]; then
+    rm -rf pwstore-${PLATFORM}-${ARCH}
+  fi
+  OPTIONS="--platform=${PLATFORM} --arch=${ARCH} --app-version=${VERSION}"
+  if [ "${PLATFORM}" = "darwin" ]; then
+    OPTIONS="${OPTIONS} --icon=icons/pwstore.icns"
+  fi
+  source/node_modules/.bin/electron-packager source pwstore ${OPTIONS}
+done
 
 if [ "$INI_FILE" != "" ]; then
     echo "restore app.ini git [ checkout HEAD ]"
