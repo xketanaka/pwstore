@@ -27,9 +27,9 @@
   #menubar .left li { float: left; margin-left: 5px; }
   #menubar .right li { float: right; margin-right: 5px; }
 
-  #categories { float: left; width: 150px; padding-right: 3px; height: 100%; }
+  #categories { float: left; width: 220px; padding-right: 3px; height: 100%; }
   #passwords { float: left; width: 300px; height: 100%; }
-  #detail { position: relative; left: 456px; padding-top: 59px; height: 100%; pointer-events: none; } /* 59px is menubar height */
+  #detail { position: relative; left: 526px; padding-top: 59px; height: 100%; pointer-events: none; } /* 59px is menubar height */
   .area { height: 100%; background-color: #ffffff; font-size: small; pointer-events: auto; }
   #passwords .area { overflow-y: scroll; height: 522px; }; /* 522 is (window.height - menubar height) */
 
@@ -38,11 +38,20 @@
   #categories li.all { padding-left: 10px; }
   #categories li.nest { padding-left: 22px; }
   #categories li span.bold { font-weight: bold; }
-  #passwords li span.service { display: inline-block; width: 85px; padding-left: 6px }
+  #categories li .edit-category-btn { display: none }
+  #categories li.selected .edit-category-btn {
+    float: right; display: inline-block; border: solid 1px #DDDDDD; border-radius: 4px;
+    color: #DDDDDD; font-size: x-small; padding: 2px 5px;
+  }
+  #categories li.selected .edit-category-btn i { font-size: small }
+  #categories li .edit-category-btn:hover { border-color: #A0A0A0; color: #A0A0A0; }
+  #categories li .edit-category-btn:active { background-color: #C0C0C0; color: #FFFFFF }
+  #categories li .edit-category-btn i { margin-right: 4px }
+  #passwords li span.service { display: inline-block; width: 110px; padding-left: 6px }
   li.selected { background-color: #fff6fa; }
   #detail div.selected { background-color: #fff6fa; color: #3b3b3b; border: solid 1px #e9669d; }
   #detail div.selected table { display: table; }
-  #detail table { display: none; position: relative; left: -456px; padding-top: 10px; padding-left: 5px; }
+  #detail table { display: none; position: relative; left: -526px; padding-top: 10px; padding-left: 5px; }
   #detail table th { padding: 2px 5px; text-align: right; font-weight: normal; font-size: x-small; }
   #detail input[type=text], #detail select, #detail textarea, #detail .textarea {
     padding: 2px; font-size: small; border: inherit; width: 200px;
@@ -104,13 +113,66 @@
           categories.filter((category)=>{ return $(`#category_${category.id}`).length == 0 })
           .forEach((c)=>{
             let cname = Util.esc(c.name);
-            ul.append(`<li class="nest" id="category_${c.id}" ><span class="bold">-</span> ${cname}</li>`);
-            if(!$("#category option").map(function(){ return this.value }).get().includes(c.id)){
-              $("#category").append(`<option value="${c.id}">${cname}</option>`);
-            }
+            ul.append(`<li class="nest" id="category_${c.id}" >${this.categoryListHTMLTemplate(cname)}</li>`);
+          });
+          // categories に含まれないものを削除
+          $("#categories ul li").filter(function(){ return this.id && this.id.match(/category_/) })
+          .each(function(){
+            let id = parseInt(this.id.match(/category_([0-9]+)/)[1]);
+            if(categories.map(category => category.id).includes(id)) return;
+            $(this).remove();
           })
+          return this.loadCategoriesForSelect(categories);
         })
       };
+      this.loadCategoriesForSelect = (categories)=>{
+        return (categories ? Promise.resolve(categories) : remoteMainWindow().categories())
+        .then((categories)=>{
+          categories.forEach((c)=>{
+            if(!$("#category option").map(function(){ return this.value }).get().includes(c.id.toString())){
+              $("#category").append(`<option value="${c.id}">${c.name}</option>`);
+            }
+          })
+          $("#category option").filter(function(){ return this.value }).each(function(){
+            if(categories.map(category => category.id.toString()).includes(this.value)) return;
+            $(this).remove();
+          })
+        })
+      }
+      this.categoryInputHTMLTemplate = (name)=>{
+        return `<span class="bold">-</span> <input type="text" id="category-name-input" value="${name}" >`
+      }
+      this.categoryListHTMLTemplate = (name)=>{
+        return `<span class="bold">-</span> ${name}`
+        + `<span class="edit-category-btn delete"><i class="fa fa-trash"></i></span>`
+        + `<span class="edit-category-btn edit"><i class="fa fa-edit"></i></span>`;
+      }
+      this.categoryAdd = ()=>{
+        if($("#category-name-input").length > 0){
+          $("#category-name-input").blur();
+        }
+        const cname = "New Category";
+        remoteMainWindow().addCategory(cname)
+        .then((id)=>{
+          $("#categories ul").append(
+          `<li class="nest" id="category_${id}" >${this.categoryInputHTMLTemplate(cname)}</li>`);
+          setTimeout(()=>{ $("#category-name-input").focus() }, 0);
+        });
+      };
+      this.categoryUpdate = (name)=>{
+        let matched = $("#category-name-input").parent().attr("id").match(/category_([0-9]+)/)
+        return remoteMainWindow().updateCategory(matched[1], name)
+        .then(()=>{
+          return this.loadCategoriesForSelect();
+        })
+      }
+      this.categoryDelete = (li)=>{
+        let matched = li.attr("id").match(/category_([0-9]+)/)
+        return remoteMainWindow().deleteCategory(matched[1])
+        .then(()=>{
+          return this.loadCategoriesForSelect();
+        })
+      }
       this.categorySelect = (category)=>{
         remoteMainWindow().list(category)
         .then((passwords)=>{
@@ -243,12 +305,30 @@
       // 未選択にする
       passwordList.passwordUnSelect();
     })
-
+    $(document).on("click", "#categories #add-category-btn", function(e){ passwordList.categoryAdd() })
+    $(document).on("click", "#categories .edit-category-btn", function(e){
+      if($(this).hasClass("edit")){
+        let name = $(this).parent().text().trim().substring(2)
+        $(this).parent().html(passwordList.categoryInputHTMLTemplate(name));
+      }
+      else if($(this).hasClass("delete")){
+        passwordList.categoryDelete($(this).parent()).then(()=>{ passwordList.loadCategories() })
+        .catch((err)=>{ if(err != "disallow") throw err })
+      }
+    })
+    $(document).on("blur", "#categories #category-name-input", function(e){
+      passwordList.categoryUpdate($(this).val())
+      .then(()=>{
+        $(this).parent().html(passwordList.categoryListHTMLTemplate($(this).val()));
+      })
+    })
+    $(document).on("keydown", "#categories #category-name-input", function(e){
+      if(e.key == "Enter") return $(this).blur();
+    })
     /// パスワードリスト選択の"click"コールバック
     $(document).on("click", "#passwords ul li, #passwords ul li span", function(e){
       let li = $(this).prop("tagName") == "LI" ? $(this) : $(this).parent();
       if(li.hasClass("selected")) return;
-
       passwordList.passwordSelect(li);
     })
     // パスワード選択（上下キー）
@@ -464,15 +544,18 @@
         <li id="menu-export"><i class="fa fa-download" ></i><div>export</div></li>
       </ul>
       <ul class="right">
-        <li id="menu-setting"><i class="fa fa-cog" ></i><div>setting</div></li>
-        <li id="menu-search"><i class="fa fa-undo" ></i><div>search</div></li>
+        <!--<li id="menu-setting"><i class="fa fa-cog" ></i><div>setting</div></li>-->
+        <li id="menu-search"><i class="fa fa-undo" ></i><div>back</div></li>
       </ul>
     </div>
     <div id="categories">
       <div class="area" >
         <div class="title"></div>
         <ul>
-          <li class="all selected"><i class="fa fa-caret-down"></i> All Categories</li>
+          <li class="all selected">
+            <i class="fa fa-caret-down"></i> All Categories
+            <span id="add-category-btn" class="edit-category-btn"><i class="fa fa-plus"></i>add</span>
+          </li>
           <!-- selected categories -->
         </ul>
       </div>

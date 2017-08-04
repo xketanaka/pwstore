@@ -46,7 +46,7 @@ class DBConnection {
     if(word) return this.searchImpl(word, { category: category });
 
     let query = `SELECT * FROM pwstore ${category ? "WHERE category = ?" : ""}
-                 ORDER BY service_name, account`;
+                 ORDER BY lower(service_name), lower(account)`;
     return this.allAsPromise(query, category ? [ category ] : [])
   }
   find(id){
@@ -103,7 +103,17 @@ class DBConnection {
     })
   }
   categories(){
-    return this.allAsPromise("SELECT * FROM category ORDER BY display_order", [])
+    return this.allAsPromise("SELECT * FROM category ORDER BY lower(name)", [])
+  }
+  createCategory(name){
+    return this.runAsPromise(`INSERT INTO category (name) values ($name)`, { $name: name})
+    .then((statement)=>{ return statement.lastID })
+  }
+  updateCategory(id, name){
+    return this.runAsPromise("UPDATE category SET name = $name WHERE id = $id", { $id: id, $name: name })
+  }
+  deleteCategory(id){
+    return this.runAsPromise("DELETE FROM category WHERE id = $id", { $id: id })
   }
   createExtra(id, sequence_no, values){
     let sql = "SELECT * FROM pwstore_extra where pwstore_id = $id AND sequence_no = $sequence_no";

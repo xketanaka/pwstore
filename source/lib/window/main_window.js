@@ -29,10 +29,32 @@ class MainWindow {
   categories(){
     return this.appContext.database.getConnection()
     .then((conn)=>{
-      return [
-        { id: 1, name: "business" },
-        { id: 2, name: "private" }
-      ]
+      return conn.categories();
+    })
+  }
+  addCategory(name){
+    return this.appContext.database.getConnection()
+    .then((conn)=>{
+      return conn.createCategory(name);
+    })
+  }
+  updateCategory(id, name){
+    return this.appContext.database.getConnection()
+    .then((conn)=>{
+      return conn.updateCategory(id, name)
+    })
+  }
+  deleteCategory(id){
+    return this.appContext.database.getConnection()
+    .then((conn)=>{
+      return conn.searchWithCategory(undefined, id)
+      .then((rows)=>{
+        if(!rows || rows.length == 0){
+          return conn.deleteCategory(id);
+        }
+        electron.dialog.showErrorBox("Not Removable", "You could not remove This category, because it has password items")
+        throw "disallow";
+      })
     })
   }
   list(category, keyword){
@@ -73,7 +95,7 @@ class MainWindow {
     return this.appContext.database.getConnection()
     .then((conn)=>{
       // encrypt
-      if(input.password){
+      if('password' in input){
         Object.assign(input, { password: this.appContext.encryptor.encrypt(input.password) });
       }
       return conn.update(id, input)
