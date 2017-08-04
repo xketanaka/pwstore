@@ -154,6 +154,9 @@ class DBConnection {
     .then(()=>{
       return this.runAsPromise("DELETE FROM pwstore", {})
     })
+    .then(()=>{
+      return this.runAsPromise("DELETE FROM category", {})
+    })
   }
   allAsPromise(statement, params){
     debug(`${statement}, ${JSON.stringify(params)}`);

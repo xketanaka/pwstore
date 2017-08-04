@@ -141,6 +141,9 @@ class MainWindow {
     .then((filename)=>{ return locals.filename = filename }).then((filename)=>{
       // export all
       if(!filename) throw "skip";
+      return this.categories()
+    })
+    .then((categories)=>{ return locals.categories = categories }).then(()=>{
       return this.appContext.database.getConnection().then((conn)=>{ return conn.findAll() })
     })
     .then((rows)=>{
@@ -149,7 +152,11 @@ class MainWindow {
         let outputObj = Object.keys(row)
         .filter(key => key != "extras" && row[key] != null)
         .reduce((sum,key)=>{
-          sum[key] = key == "password" ? this.appContext.encryptor.decrypt(row[key]) : row[key];
+          switch(key){
+            case "password": sum[key] = this.appContext.encryptor.decrypt(row[key]); break;
+            case "category": sum[key] = locals.categories.find(c => c.id == row[key]).name; break;
+            default: sum[key] = row[key];
+          }
           return sum;
         }, {});
 
@@ -187,7 +194,7 @@ class MainWindow {
       title: 'Choose a JSON file which contains Password info',
       buttonLabel: '選択',
     };
-    let connection, parsedObject;
+    let connection, parsedObject, categories = {};
     return new Promise((resolve, reject)=>{
       electron.dialog.showOpenDialog(this.appContext.win, options, (files)=>{
         if(!files) return reject(()=>{ /* nothing todo */ });
@@ -214,10 +221,22 @@ class MainWindow {
       // import all!
       return parsedObject.entries.reduce((promise, entry)=>{
         return promise.then(()=>{
-          if(entry.password){
-            entry.password = this.appContext.encryptor.encrypt(entry.password);
+          function categoryNameToCategoryId(entry){
+            if(!("category" in entry)) return Promise.resolve(entry);
+            if(entry.category in categories){
+              return Promise.resolve(entry.category = categories[entry.category]);
+            }
+            return connection.createCategory(entry.category)
+            .then((id)=>{ entry.category = categories[entry.category] = id; console.log(categories) })
           }
-          return connection.create(entry).then((id)=>{
+          return categoryNameToCategoryId(entry)
+          .then(()=>{
+            if("password" in entry){
+              entry.password = this.appContext.encryptor.encrypt(entry.password);
+            }
+            return connection.create(entry)
+          })
+          .then((id)=>{
             let promises = [];
             for(let i = 1; true; i++){
               if(!(`extra${i}_key_name` in entry)) break;
