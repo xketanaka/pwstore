@@ -238,8 +238,11 @@
           $("#status").val(       password.status || "" );
           $("#category").val(     password.category || "" );
           $("#show-password-tr")[password.password ? "removeClass" : "addClass"]("invisible");
+          // checkbox
+          $("#show-password-tr input[type=checkbox]").prop("checked", false);
+          $("#password").attr("type", "password");
           // textarea
-          $("#note_display").html(    Util.esc(password.note || "") );
+          $("#note_display").html( Util.esc(password.note || "") );
           // selectbox
           $("#category_display").val(
             $("#category option").filter(function(){ return this.value == (password.category || "") })[0].innerHTML);
