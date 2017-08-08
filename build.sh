@@ -1,21 +1,22 @@
 #!/bin/bash
 
-while getopts f:v: OPT
+while getopts f: OPT
 do
     case $OPT in
         f) INI_FILE=$OPTARG
           ;;
-        v) VERSION=$OPTARG
-          ;;
     esac
 done
+
+NODE=node
+VERSION=`$NODE -e 'console.log(JSON.parse(require("fs").readFileSync("./source/package.json")).version)'`
 
 if [ "$VERSION" = "" ]; then
 
   printf "作成するアプリケーションのバージョンを指定してください(例: 1.2.3): "
   read VERSION
 
-  [ "$VERSION" = "" ] && VERSION="0.1.0"
+  [ "$VERSION" = "" ] && echo "Abort!" && exit 1
 fi
 
 if [ "$INI_FILE" != "" ] && [ -f $INI_FILE ]; then
