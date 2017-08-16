@@ -28,8 +28,8 @@
   #menubar .right li { float: right; margin-right: 5px; }
 
   #categories { float: left; width: 220px; padding-right: 3px; height: 100%; }
-  #passwords { float: left; width: 300px; height: 100%; }
-  #detail { position: relative; left: 526px; padding-top: 59px; height: 100%; pointer-events: none; } /* 59px is menubar height */
+  #passwords { float: left; width: 380px; height: 100%; }
+  #detail { position: relative; left: 606px; padding-top: 59px; height: 100%; pointer-events: none; } /* 59px is menubar height */
   .area { height: 100%; background-color: #ffffff; font-size: small; pointer-events: auto; }
   #passwords .area { overflow-y: scroll; height: 522px; }; /* 522 is (window.height - menubar height) */
 
@@ -47,11 +47,11 @@
   #categories li .edit-category-btn:hover { border-color: #A0A0A0; color: #A0A0A0; }
   #categories li .edit-category-btn:active { background-color: #C0C0C0; color: #FFFFFF }
   #categories li .edit-category-btn i { margin-right: 4px }
-  #passwords li span.service { display: inline-block; width: 110px; padding-left: 6px }
+  #passwords li span.service { display: inline-block; width: 190px; padding-left: 6px }
   li.selected { background-color: #fff6fa; }
   #detail div.selected { background-color: #fff6fa; color: #3b3b3b; border: solid 1px #e9669d; }
   #detail div.selected table { display: table; }
-  #detail table { display: none; position: relative; left: -526px; padding-top: 10px; padding-left: 5px; }
+  #detail table { display: none; position: relative; left: -606px; padding-top: 10px; padding-left: 5px; }
   #detail table th { padding: 2px 5px; text-align: right; font-weight: normal; font-size: x-small; }
   #detail input[type=text], #detail select, #detail textarea, #detail .textarea {
     padding: 2px; font-size: small; border: inherit; width: 200px;
@@ -184,7 +184,7 @@
       };
       this.generateOneHTML = (service_name, account)=>{
         return `<i class="fa fa-lock"></i>` +
-        `<span class="service">${Util.esc(Util.displayString(service_name, 12)) || ""}</span>` +
+        `<span class="service">${Util.esc(Util.displayString(service_name, 22)) || ""}</span>` +
         `<span class="account">${Util.esc(Util.displayString(account, 18)) || ""}</span>`;
       };
       this.adjustSize = ()=>{
