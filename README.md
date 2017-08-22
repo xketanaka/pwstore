@@ -18,9 +18,11 @@ pwstore はパスワード管理アプリケーションです。
 
 <img src="https://raw.githubusercontent.com/wiki/xketanaka/pwstore/images/display_entry.png" width="700px" >
 
-3. 候補の中から選択しEnterキーを押すと該当のパスワードがクリップボードにコピーされる
+3. 候補の中から選択した状態で Shift + Enter を押すと該当のアカウントがクリップボードにコピーされる
 
 <img src="https://raw.githubusercontent.com/wiki/xketanaka/pwstore/images/selected.png" width="700px" >
+
+4. Enter を押すと該当のパスワードがクリップボードにコピーされ、アプリケーションが終了する
 
 ## パスワード管理画面
 
