@@ -195,7 +195,7 @@
         return remoteMainWindow().update(id, values)
         .then(()=>{
           if("service_name" in values){
-            $(`#password_${id} .service`).html(Util.esc(Util.displayString(values.service_name, 12)) || "");
+            $(`#password_${id} .service`).html(Util.esc(Util.displayString(values.service_name, 22)) || "");
           }
           if("account" in values){
             $(`#password_${id} .account`).html(Util.esc(Util.displayString(values.account, 18)) || "");

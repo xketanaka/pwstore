@@ -1,6 +1,6 @@
 {
   "name": "pwstore",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -22,10 +22,10 @@
     "build_opt": "--build-from-source --sqlite_libname=sqlcipher --sqlite=/usr/local"
   },
   "dependencies": {
+    "electron": "*",
     "sqlite3": "^3.1.8"
   },
   "devDependencies": {
-    "electron": "*",
     "electron-packager": "*",
     "node-gyp": "*"
   }
