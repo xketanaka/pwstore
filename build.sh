@@ -1,13 +1,5 @@
 #!/bin/bash
 
-while getopts f: OPT
-do
-    case $OPT in
-        f) INI_FILE=$OPTARG
-          ;;
-    esac
-done
-
 NODE=node
 VERSION=`$NODE -e 'console.log(JSON.parse(require("fs").readFileSync("./source/package.json")).version)'`
 
@@ -19,9 +11,8 @@ if [ "$VERSION" = "" ]; then
   [ "$VERSION" = "" ] && echo "Abort!" && exit 1
 fi
 
-if [ "$INI_FILE" != "" ] && [ -f $INI_FILE ]; then
-    echo "replace app.ini by [ $INI_FILE ]"
-    cp $INI_FILE source/config/app.ini
+if [ -f "./prebuild.sh" ]; then
+ . ./prebuild.sh
 fi
 
 #PLATFORMS=(linux win32 darwin)
@@ -39,8 +30,3 @@ for PLATFORM in ${PLATFORMS[@]}; do
   fi
   source/node_modules/.bin/electron-packager source pwstore ${OPTIONS}
 done
-
-if [ "$INI_FILE" != "" ]; then
-    echo "restore app.ini git [ checkout HEAD ]"
-    git checkout HEAD source/config/app.ini
-fi

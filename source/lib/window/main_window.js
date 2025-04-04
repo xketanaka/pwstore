@@ -229,7 +229,7 @@ class MainWindow {
               return Promise.resolve(entry.category = categories[entry.category]);
             }
             return connection.createCategory(entry.category)
-            .then((id)=>{ entry.category = categories[entry.category] = id; console.log(categories) })
+            .then((id)=>{ entry.category = categories[entry.category] = id })
           }
           return categoryNameToCategoryId(entry)
           .then(()=>{

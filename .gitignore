@@ -5,8 +5,8 @@
 #   git config --global core.excludesfile '~/.gitignore_global'
 
 # local
-/private/
 /icon_originals/
+prebuild.sh
 
 # build
 /pwstore-darwin-x64/
