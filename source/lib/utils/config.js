@@ -25,7 +25,7 @@ class Config {
     // configファイルが存在する場合は読み込む
     if(fs.existsSync(this.configFilePath)){
       const encrypted = fs.readFileSync(this.configFilePath, 'utf8');
-      const jsonString = new Buffer(this.configEncryptor.decrypt(encrypted), "hex").toString('utf8');
+      const jsonString = Buffer.from(this.configEncryptor.decrypt(encrypted), "hex").toString('utf8');
       this.raw = JSON.parse(jsonString);
     }
   }
