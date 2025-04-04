@@ -129,16 +129,14 @@ class MainWindow {
   }
   export(password){
     let locals = {}
-    return new Promise((resolve, reject)=>{
-      // choose dir
-      electron.dialog.showSaveDialog(this.appContext.win, {
-        title: "Export To File",
-        defaultPath: "data.encrypted",
-        message: "Select FilePath to Save Exported Passwords, \n" +
-        "that is In JSON Format, and Encrypted by AES-128 with Your Master-Password."
-      }, resolve)
+    // choose dir
+    return electron.dialog.showSaveDialog(this.appContext.win, {
+      title: "Export To File",
+      defaultPath: "data.encrypted",
+      message: "Select FilePath to Save Exported Passwords, \n" +
+        "that is In JSON Format, and Encrypted by AES-256-CBC with Your Master-Password."
     })
-    .then((filename)=>{ return locals.filename = filename }).then((filename)=>{
+    .then((result)=>{ return locals.filename = result.filePath }).then((filename)=>{
       // export all
       if(!filename) throw "skip";
       return this.categories()
@@ -195,10 +193,14 @@ class MainWindow {
       buttonLabel: '選択',
     };
     let connection, parsedObject, categories = {};
-    return new Promise((resolve, reject)=>{
-      electron.dialog.showOpenDialog(this.appContext.win, options, (files)=>{
-        if(!files) return reject(()=>{ /* nothing todo */ });
-        fs.stat(files[0], (err, stats)=>{ if(err) reject(err); else resolve(files[0]); })
+    return electron.dialog.showOpenDialog(this.appContext.win, options)
+    .then((result) => {
+      return new Promise((resolve, reject) => {
+          if (!result.filePaths && result.filePaths.length == 0) {
+          return reject("no selected")
+        }
+        let filePath = result.filePaths[0];
+        fs.stat(filePath, (err, stats)=>{ if(err) reject(err); else resolve(filePath); })
       })
     })
     .then((filepath)=>{

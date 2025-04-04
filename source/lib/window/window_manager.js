@@ -17,6 +17,11 @@ class WindowManager {
   static get pwstore(){ return require("../pwstore") }
 
   static createBrowserWindow(name, options){
+    options['webPreferences'] = {
+      nodeIntegration: true,
+      contextIsolation: false,
+      enableRemoteModule: true,
+    };
     let browserWindow = new BrowserWindow(options);
     browserWindow.associatedWindow = name;
 

@@ -1,1 +1,53 @@
-var _0xabd5=['\x64\x61\x74\x61\x62\x61\x73\x65\x46\x69\x6c\x65','\x73\x6c\x69\x63\x65','\x6c\x65\x6e\x67\x74\x68','\x63\x72\x79\x70\x74\x6f','\x61\x70\x70\x4b\x65\x79','\x5f\x61\x70\x70\x4b\x65\x79','\x70\x61\x64\x64\x69\x6e\x67','\x5f\x70\x61\x64\x64\x69\x6e\x67','\x70\x72\x6f\x66\x69\x6c\x65','\x75\x73\x65\x72\x44\x61\x74\x61\x44\x69\x72','\x5f\x75\x73\x65\x72\x44\x61\x74\x61\x44\x69\x72','\x5f\x70\x72\x6f\x66\x69\x6c\x65','\x63\x6f\x6e\x66\x69\x67\x46\x69\x6c\x65\x50\x61\x74\x68','\x6a\x6f\x69\x6e','\x69\x6e\x69\x74\x69\x61\x6c\x69\x7a\x65','\x63\x6f\x6e\x66\x69\x67','\x65\x6e\x63\x72\x79\x70\x74\x6f\x72','\x72\x61\x77','\x70\x61\x72\x73\x65','\x72\x65\x61\x64\x46\x69\x6c\x65\x53\x79\x6e\x63','\x75\x74\x66\x38','\x68\x65\x78','\x65\x6e\x63\x72\x79\x70\x74\x69\x6f\x6e\x4b\x65\x79','\x64\x65\x63\x72\x79\x70\x74','\x64\x62\x45\x6e\x63\x72\x79\x70\x74\x69\x6f\x6e\x4b\x65\x79','\x73\x74\x6f\x72\x65','\x61\x73\x73\x69\x67\x6e','\x65\x6e\x63\x72\x79\x70\x74','\x77\x72\x69\x74\x65\x46\x69\x6c\x65','\x73\x74\x72\x69\x6e\x67\x69\x66\x79','\x74\x6f\x53\x74\x72\x69\x6e\x67','\x69\x6e\x69\x74\x69\x61\x6c\x69\x7a\x65\x64'];(function(_0x462120,_0x219bae){var _0x4a28aa=function(_0x484eed){while(--_0x484eed){_0x462120['\x70\x75\x73\x68'](_0x462120['\x73\x68\x69\x66\x74']());}};_0x4a28aa(++_0x219bae);}(_0xabd5,0xc3));var _0x5abd=function(_0x210e23,_0xd419a7){_0x210e23=_0x210e23-0x0;var _0x590135=_0xabd5[_0x210e23];return _0x590135;};const fs=require('\x66\x73');const path=require('\x70\x61\x74\x68');const crypto=require(_0x5abd('0x0'));const Encryptor=require('\x2e\x2f\x65\x6e\x63\x72\x79\x70\x74\x6f\x72');class AppConfig{get[_0x5abd('0x1')](){return this[_0x5abd('0x2')];}get[_0x5abd('0x3')](){return this[_0x5abd('0x4')];}get[_0x5abd('0x5')](){return this['\x5f\x70\x72\x6f\x66\x69\x6c\x65'];}get[_0x5abd('0x6')](){return this[_0x5abd('0x7')];}constructor(_0x24ff52){this['\x5f\x61\x70\x70\x4b\x65\x79']=_0x24ff52['\x61\x70\x70\x4b\x65\x79'];this[_0x5abd('0x4')]=_0x24ff52['\x70\x61\x64\x64\x69\x6e\x67'];this[_0x5abd('0x8')]=_0x24ff52[_0x5abd('0x5')];this[_0x5abd('0x7')]=_0x24ff52[_0x5abd('0x6')];}}class Config extends AppConfig{get[_0x5abd('0x9')](){return path[_0x5abd('0xa')](this[_0x5abd('0x6')],this[_0x5abd('0x5')]+'\x2e\x63\x6f\x6e\x66');}static[_0x5abd('0xb')](_0x42ec4d){Config[_0x5abd('0xc')]=new Config(_0x42ec4d);}constructor(_0xb39e53){super(_0xb39e53);this[_0x5abd('0xd')]=new Encryptor(this[_0x5abd('0x1')]);if(!fs['\x65\x78\x69\x73\x74\x73\x53\x79\x6e\x63'](this[_0x5abd('0x9')])){this[_0x5abd('0xe')]={};}else{this[_0x5abd('0xe')]=JSON[_0x5abd('0xf')](new Buffer(fs[_0x5abd('0x10')](this[_0x5abd('0x9')],_0x5abd('0x11')),_0x5abd('0x12'))['\x74\x6f\x53\x74\x72\x69\x6e\x67'](_0x5abd('0x11')));if(this[_0x5abd('0xe')][_0x5abd('0x13')]){this[_0x5abd('0xe')][_0x5abd('0x13')]=this[_0x5abd('0xd')][_0x5abd('0x14')](this[_0x5abd('0xe')][_0x5abd('0x13')]);}if(this['\x72\x61\x77'][_0x5abd('0x15')]){this['\x72\x61\x77'][_0x5abd('0x15')]=this[_0x5abd('0xd')][_0x5abd('0x14')](this[_0x5abd('0xe')][_0x5abd('0x15')]);}}}[_0x5abd('0x16')](){let _0x1a1538=Object[_0x5abd('0x17')]({},this[_0x5abd('0xe')]);if(this[_0x5abd('0x13')]){_0x1a1538['\x65\x6e\x63\x72\x79\x70\x74\x69\x6f\x6e\x4b\x65\x79']=this[_0x5abd('0xd')][_0x5abd('0x18')](this['\x72\x61\x77'][_0x5abd('0x13')]);}if(this[_0x5abd('0x15')]){_0x1a1538[_0x5abd('0x15')]=this[_0x5abd('0xd')][_0x5abd('0x18')](this[_0x5abd('0xe')][_0x5abd('0x15')]);}return new Promise((_0x60a5ff,_0xb4679b)=>{fs[_0x5abd('0x19')](this[_0x5abd('0x9')],new Buffer(JSON[_0x5abd('0x1a')](_0x1a1538))[_0x5abd('0x1b')](_0x5abd('0x12')),_0x206793=>{_0x206793?_0xb4679b(_0x206793):_0x60a5ff();});});}get[_0x5abd('0x1c')](){return this[_0x5abd('0x1d')]&&this['\x65\x6e\x63\x72\x79\x70\x74\x69\x6f\x6e\x4b\x65\x79'];}get[_0x5abd('0x1d')](){return this[_0x5abd('0xe')][_0x5abd('0x1d')];}set[_0x5abd('0x1d')](_0x1f4530){this['\x72\x61\x77'][_0x5abd('0x1d')]=_0x1f4530;}get[_0x5abd('0x13')](){let _0x15ffd0=this[_0x5abd('0xe')][_0x5abd('0x13')];return _0x15ffd0&&_0x15ffd0[_0x5abd('0x1e')](this['\x70\x61\x64\x64\x69\x6e\x67'][_0x5abd('0x1f')]);}set[_0x5abd('0x13')](_0x4c1779){this[_0x5abd('0xe')]['\x65\x6e\x63\x72\x79\x70\x74\x69\x6f\x6e\x4b\x65\x79']=''+this['\x70\x61\x64\x64\x69\x6e\x67']+_0x4c1779;}get[_0x5abd('0x15')](){let _0x3b5c6a=this[_0x5abd('0xe')][_0x5abd('0x15')];return _0x3b5c6a&&_0x3b5c6a['\x73\x6c\x69\x63\x65'](this['\x70\x61\x64\x64\x69\x6e\x67']['\x6c\x65\x6e\x67\x74\x68']);}set[_0x5abd('0x15')](_0x3d824a){this[_0x5abd('0xe')][_0x5abd('0x15')]=''+this[_0x5abd('0x3')]+_0x3d824a;}}module['\x65\x78\x70\x6f\x72\x74\x73']=Config;
+const fs = require("fs");
+const path = require("path");
+const electron = require("electron");
+const Encryptor = require("./encryptor");
+
+// configuratin 情報を保持するクラス
+//
+class Config {
+
+  get profile(){ return this._profile }
+  get userDataDir(){ return electron.app.getPath('userData') }
+  get configFilePath(){ return path.join(this.userDataDir, `${this.profile}.conf`) } // 当クラスで扱う属性を保存するプロパティファイルパス
+
+  constructor(){
+    let buildEnvFile = `${__dirname}/../../config/build.environment`;
+    this._profile = fs.existsSync(buildEnvFile) ? fs.readFileSync(buildEnvFile, 'utf8') : "development";
+
+    let buildSecretFile = `${__dirname}/../../config/build.secret`;
+    let buildSecret = fs.existsSync(buildSecretFile) ? fs.readFileSync(buildSecretFile, 'utf8') : "pwstore";
+
+    // 暗号化モジュールを生成
+    this.configEncryptor = new Encryptor(buildSecret);
+    // 設定値の初期化
+    this.raw = {}
+    // configファイルが存在する場合は読み込む
+    if(fs.existsSync(this.configFilePath)){
+      const encrypted = fs.readFileSync(this.configFilePath, 'utf8');
+      const jsonString = new Buffer(this.configEncryptor.decrypt(encrypted), "hex").toString('utf8');
+      this.raw = JSON.parse(jsonString);
+    }
+  }
+  store(){
+    let values = Object.assign({}, this.raw);
+    return new Promise((resolve, reject)=>{
+      let encrypted = this.configEncryptor.encrypt(Buffer.from(JSON.stringify(values)).toString('hex'));
+      fs.writeFile(this.configFilePath, encrypted, (err)=>{
+        err ? reject(err) : resolve();
+      })
+    })
+  }
+  // 初期化が完了しているかどうか
+  get initialized(){ return this.databaseFile && this.encryptionKey }
+  // データベースファイルパス
+  get databaseFile(){ return this.raw.databaseFile }
+  set databaseFile(val){ this.raw.databaseFile = val }
+  // 暗号化キー
+  get encryptionKey(){ return this.raw.encryptionKey }
+  set encryptionKey(val){ this.raw.encryptionKey = val }
+}
+
+Config.config = new Config();
+
+module.exports = Config;

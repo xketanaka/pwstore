@@ -5,26 +5,14 @@ const DBConnection = require("./db_connection");
  * DBConnection のファクトリークラス
  */
 class Database {
-  constructor(filepath, dbEncryptionKey){
+  constructor(filepath){
     this.filepath = filepath;
-    this.dbEncryptionKey = dbEncryptionKey;
   }
   getConnection(){
     return new Promise((resolve, reject)=>{
       let db = new sqlite3.Database(this.filepath)
       db.on("error", reject);
       db.on("open", ()=>{ resolve(db) });
-    })
-    .then((db)=>{
-      if(!this.dbEncryptionKey) return db;
-
-      return new Promise((resolve, reject)=>{
-        db.run(`PRAGMA key = '${this.dbEncryptionKey}'`, (err)=>{
-          db.run("PRAGMA CIPHER = 'aes-128-cbc'", (err)=>{
-            err? reject(err): resolve(db);
-          });
-        })
-      });
     })
     .then((db)=>{
       let conn = new DBConnection(db);

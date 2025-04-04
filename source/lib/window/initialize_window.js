@@ -18,21 +18,27 @@ class InitializeWindow {
   }
   databaseFileSelect(){
     let options = {
-      title: 'Choose a database file or Choose a directory to store database file(and filename of database file will be pwstore.sqlite)',
+      title: 'Choose a database file or Choose a directory to store database file(and filename of database file will be pwstore.db)',
       buttonLabel: '選択',
       properties: ['openFile', 'openDirectory', 'createDirectory'],
       filters: [
-        { name: 'SQLiteデータベースファイル', extensions: ['db','sqlite', 'sqlite3', 'database'] },
+        { name: 'Passwordデータベースファイル', extensions: ['db','store', 'data', 'database'] },
         { name: 'All Files', extensions: ['*'] }
       ]
     };
-    return new Promise((resolve, reject)=>{
-      electron.dialog.showOpenDialog(this.appContext.win, options, (files)=>{
-        if(!files) reject("cancel")
-        fs.stat(files[0], (err, stats)=>{
-          if(err) reject(err);
-          resolve(stats.isFile() ? files[0] : path.join(files[0], "store.sqlite"));
-        })
+    return electron.dialog.showOpenDialog(this.appContext.win, options)
+    .then((result)=>{
+      return new Promise((resolve, reject) => {
+          if (!result.filePaths && result.filePaths.length == 0) {
+          return reject("no selected")
+        }
+        let filePath = result.filePaths[0];
+        fs.stat(filePath, (err, stats) => {
+            if(err) {
+            return reject(err)
+          }
+          return resolve(stats.isFile() ? filePath : path.join(filePath, "pwstore.db"));
+        });
       })
     })
     .then((filepath)=>{
@@ -43,7 +49,6 @@ class InitializeWindow {
   }
   setMasterPassword(email, passwd){
     config.encryptionKey = Encryptor.generateKey(email, passwd);
-    config.dbEncryptionKey = Encryptor.generateSecretKey(email, passwd);
     return config.store().then(()=>{ pwstore.initialize() })
   }
   complete(){

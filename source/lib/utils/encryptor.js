@@ -1,1 +1,20 @@
-var _0x6454=['\x65\x78\x70\x6f\x72\x74\x73','\x65\x6e\x63\x72\x79\x70\x74\x69\x6f\x6e\x4b\x65\x79','\x65\x6e\x63\x72\x79\x70\x74','\x63\x72\x65\x61\x74\x65\x43\x69\x70\x68\x65\x72','\x61\x65\x73\x31\x32\x38','\x75\x70\x64\x61\x74\x65','\x75\x74\x66\x38','\x68\x65\x78','\x66\x69\x6e\x61\x6c','\x63\x72\x65\x61\x74\x65\x44\x65\x63\x69\x70\x68\x65\x72','\x67\x65\x6e\x65\x72\x61\x74\x65\x4b\x65\x79','\x63\x72\x65\x61\x74\x65\x48\x61\x73\x68','\x73\x68\x61\x31','\x64\x69\x67\x65\x73\x74','\x67\x65\x6e\x65\x72\x61\x74\x65\x53\x65\x63\x72\x65\x74\x4b\x65\x79','\x73\x68\x61\x32\x35\x36'];(function(_0x134522,_0x3d39c6){var _0x5598e0=function(_0x1816a0){while(--_0x1816a0){_0x134522['\x70\x75\x73\x68'](_0x134522['\x73\x68\x69\x66\x74']());}};_0x5598e0(++_0x3d39c6);}(_0x6454,0xb1));var _0x4645=function(_0x599e2b,_0x5a29a2){_0x599e2b=_0x599e2b-0x0;var _0x1f8dc5=_0x6454[_0x599e2b];return _0x1f8dc5;};const crypto=require('\x63\x72\x79\x70\x74\x6f');class Encryptor{constructor(_0x1918f4){this[_0x4645('0x0')]=_0x1918f4;}[_0x4645('0x1')](_0x5edc36){let _0xd4dadd=crypto[_0x4645('0x2')](_0x4645('0x3'),this['\x65\x6e\x63\x72\x79\x70\x74\x69\x6f\x6e\x4b\x65\x79']);return _0xd4dadd[_0x4645('0x4')](_0x5edc36,_0x4645('0x5'),_0x4645('0x6'))+_0xd4dadd[_0x4645('0x7')]('\x68\x65\x78');}['\x64\x65\x63\x72\x79\x70\x74'](_0x29f2b1){let _0x4c6453=crypto[_0x4645('0x8')]('\x61\x65\x73\x31\x32\x38',this[_0x4645('0x0')]);return _0x4c6453[_0x4645('0x4')](_0x29f2b1,_0x4645('0x6'),_0x4645('0x5'))+_0x4c6453[_0x4645('0x7')](_0x4645('0x5'));}static[_0x4645('0x9')](_0x9fb4f9,_0x371b9a){return crypto[_0x4645('0xa')](_0x4645('0xb'))[_0x4645('0x4')](_0x9fb4f9+'\x3a'+_0x371b9a)[_0x4645('0xc')](_0x4645('0x6'));}static[_0x4645('0xd')](_0xbf1e07,_0x3a4909){return crypto[_0x4645('0xa')](_0x4645('0xe'))[_0x4645('0x4')](_0xbf1e07+'\x3a'+_0x3a4909)[_0x4645('0xc')](_0x4645('0x6'));}}module[_0x4645('0xf')]=Encryptor;
+const crypto = require("crypto");
+
+class Encryptor {
+  constructor(encryptionKey){
+    this.encryptionKey = encryptionKey;
+  }
+  encrypt(string){
+    let cipher = crypto.createCipher('aes-256-cbc', this.encryptionKey)
+    return cipher.update(string, 'utf8', 'hex') + cipher.final('hex');
+  }
+  decrypt(string){
+    let decipher = crypto.createDecipher('aes-256-cbc', this.encryptionKey);
+    return decipher.update(string, 'hex', 'utf8') + decipher.final('utf8');
+  }
+  static generateKey(mail, pass){
+    return crypto.createHash("sha1").update(`${mail}:${pass}`).digest("hex");
+  }
+}
+
+module.exports = Encryptor;
