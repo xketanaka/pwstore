@@ -46,7 +46,7 @@ class PwStore {
       }
     }
     if(!this.appContext.encryptor || force){
-      this.appContext.encryptor = new PwStore.Encryptor(config.encryptionKey);
+      this.appContext.encryptor = new PwStore.Encryptor(config.encryptionKey, config.profile);
     }
   }
   getWindow(name){

@@ -13,13 +13,13 @@ class Config {
 
   constructor(){
     let buildEnvFile = `${__dirname}/../../config/build.environment`;
-    this._profile = fs.existsSync(buildEnvFile) ? fs.readFileSync(buildEnvFile, 'utf8') : "development";
+    this._profile = fs.existsSync(buildEnvFile) ? fs.readFileSync(buildEnvFile, 'utf8').trim() : "development";
 
     let buildSecretFile = `${__dirname}/../../config/build.secret`;
-    let buildSecret = fs.existsSync(buildSecretFile) ? fs.readFileSync(buildSecretFile, 'utf8') : "pwstore";
+    let buildSecret = fs.existsSync(buildSecretFile) ? fs.readFileSync(buildSecretFile, 'utf8').trim() : "pwstore";
 
     // 暗号化モジュールを生成
-    this.configEncryptor = new Encryptor(buildSecret);
+    this.configEncryptor = new Encryptor(buildSecret, this._profile);
     // 設定値の初期化
     this.raw = {}
     // configファイルが存在する場合は読み込む

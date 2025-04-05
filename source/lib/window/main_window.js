@@ -172,7 +172,7 @@ class MainWindow {
       let jsonString = `{"entries":[\n${rowsString}\n]}`;
       // encrypt and save
       return new Promise((resolve, reject)=>{
-        fs.writeFile(locals.filename, new Encryptor(password).encrypt(jsonString), resolve)
+        fs.writeFile(locals.filename, new Encryptor(password, config.profile).encrypt(jsonString), resolve)
       })
     })
     .then((err)=>{
