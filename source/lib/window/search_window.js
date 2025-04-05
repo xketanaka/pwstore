@@ -53,6 +53,11 @@ class SearchWindow {
   showOnReady(){
     this.browserWindow.show();
   }
+  hide(){
+    let [w, h] = this.browserWindow.getSize();
+    this.browserWindow.setSize(w, this.defaultSize.height);
+    this.browserWindow.minimize();
+  }
   moveToMainWindow(){
     this.browserWindow.hide();
     this.windowManager.moveToNext("MainWindow", this.browserWindow);

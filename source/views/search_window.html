@@ -128,7 +128,9 @@
               tooltip.style.display = "inline-block";
               setTimeout(()=>{ tooltip.style.display = "none" }, 1800);
             }else{
-              window.close();
+              $("#search-area input").value = '';
+              this.ul.innerHTML = '';
+              remoteSearchWindow().hide();
             }
           }
         });
