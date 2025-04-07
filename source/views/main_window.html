@@ -503,36 +503,24 @@
     }
     $("#menu-import").on("click", (e)=>{
       let modalDialog = getModalDialog();
-      modalDialog.show("Import and replace all by passwords in JSON fifle, ", "Import!", (e)=>{
+      modalDialog.show("Import encrypted JSON file to replace all entries. Please enter email and password used for encryption", "Import!", (e)=>{
         modalDialog.stopEvent(e);
-        remoteMainWindow()
-        .authenticate(modalDialog.find("input.email").val(), modalDialog.find("input.password").val())
+        modalDialog.closeDialog();
+        return remoteMainWindow().import(modalDialog.find("input.email").val(), modalDialog.find("input.password").val())
         .then(()=>{
-          modalDialog.closeDialog();
-          return remoteMainWindow().import();
-        })
-        .then(()=>{ modalDialog.clearBackground() })
-        .catch((err)=>{
-          if(err != "auth failure") throw err;
-          modalDialog.setError('Your email or password did not match registered one.');
-        })
+          modalDialog.clearBackground()
+          passwordList.loadCategories();
+          passwordList.categorySelect();
+         })
       })
     })
     $("#menu-export").on("click", (e)=>{
       let modalDialog = getModalDialog();
-      modalDialog.show("Export all passwords as encrypted JSON file, ", "Export!", (e)=>{
+      modalDialog.show("Export all as encrypted JSON file, Please enter email and password used for encryption", "Export!", (e)=>{
         modalDialog.stopEvent(e);
-        remoteMainWindow()
-        .authenticate(modalDialog.find("input.email").val(), modalDialog.find("input.password").val())
-        .then(()=>{
-          modalDialog.closeDialog();
-          return remoteMainWindow().export(modalDialog.find("input.password").val());
-        })
+        modalDialog.closeDialog();
+        return remoteMainWindow().export(modalDialog.find("input.email").val(), modalDialog.find("input.password").val())
         .then(()=>{ modalDialog.clearBackground() })
-        .catch((err)=>{
-          if(err != "auth failure") throw err;
-          modalDialog.setError('Your email or password did not match registered one.');
-        })
       })
     })
     remoteMainWindow().showOnReady();

@@ -120,14 +120,7 @@ class MainWindow {
       return conn.deleteExtra(id, seqNo)
     })
   }
-  authenticate(email, password){
-    if(Encryptor.generateKey(email, password) == config.encryptionKey){
-      return Promise.resolve()
-    }else{
-      return Promise.reject("auth failure");
-    }
-  }
-  export(password){
+  export(email, password){
     let locals = {}
     // choose dir
     return electron.dialog.showSaveDialog(this.appContext.win, {
@@ -170,10 +163,9 @@ class MainWindow {
       }).join(",\n");
 
       let jsonString = `{"entries":[\n${rowsString}\n]}`;
+      let encryptionKey = Encryptor.generateKey(email, password);
       // encrypt and save
-      return new Promise((resolve, reject)=>{
-        fs.writeFile(locals.filename, new Encryptor(password, config.profile).encrypt(jsonString), resolve)
-      })
+      return fs.promises.writeFile(locals.filename, new Encryptor(encryptionKey, config.profile).encrypt(jsonString))
     })
     .then((err)=>{
       if(err){
@@ -187,7 +179,7 @@ class MainWindow {
       throw err;
     })
   }
-  import(){
+  import(email, password){
     let options = {
       title: 'Choose a JSON file which contains Password info',
       buttonLabel: '選択',
@@ -204,15 +196,24 @@ class MainWindow {
       })
     })
     .then((filepath)=>{
-      return new Promise((resolve, reject)=>{
-        fs.readFile(filepath, 'utf8', (err, data)=>{
-          try {
-            err ? reject(err) : resolve(JSON.parse(data));
-          }catch(e){
-            reject(()=>{ electron.dialog.showErrorBox("Parse Error", "Selected File is not a JSON Format.") })
-          }
-        })
-      })
+      return fs.promises.readFile(filepath, 'utf8');
+    })
+    .then((data)=>{
+      let encryptionKey = Encryptor.generateKey(email, password);
+      try {
+        return new Encryptor(encryptionKey, config.profile).decrypt(data);
+      } catch (e) {
+        electron.dialog.showErrorBox("Decryption Error", "Email or password is not correct.");
+        throw "messaged";
+      }
+    })
+    .then((jsonString)=>{
+      try {
+        return JSON.parse(jsonString)
+      } catch (e) {
+        electron.dialog.showErrorBox("Parse Error", "Selected File is not a JSON Format.");
+        throw "messaged";
+      }
     })
     .then((object)=>{ parsedObject = object }).then(()=>{
       // clean DB
@@ -252,7 +253,11 @@ class MainWindow {
         })
       }, Promise.resolve());
     })
+    .then(()=>{
+      electron.dialog.showErrorBox("Import complete", `All entries have been replaced.`)
+    })
     .catch((err)=>{
+      if(err == "messaged") return;
       if(typeof err === "function") return err(); else throw err;
     })
   }
