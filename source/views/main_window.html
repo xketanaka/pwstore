@@ -26,6 +26,11 @@
   #menubar li div { font-size: small; text-align: center; margin-bottom: -5px; }
   #menubar .left li { float: left; margin-left: 5px; }
   #menubar .right li { float: right; margin-right: 5px; }
+  #menubar #menu-filter { float: left; padding: 1rem 2.5rem; position: relative; }
+  #menubar #menu-filter input { border-radius: 8px; width: 230px; padding: 5px 25px; border: solid 1px #bbb; }
+  #menubar #menu-filter::before{
+    position: absolute; content:"\f002"; font-family: "FontAwesome"; top:21px; left:48px; color: #999;
+  }
 
   #categories { float: left; width: 220px; padding-right: 3px; height: 100%; }
   #passwords { float: left; width: 380px; height: 100%; }
@@ -174,7 +179,7 @@
         })
       }
       this.categorySelect = (category)=>{
-        remoteMainWindow().list(category)
+        remoteMainWindow().list(category, $("#filter-word").val())
         .then((passwords)=>{
           $("#passwords ul").html(passwords.map((password)=>{
             let inner = this.generateOneHTML(password.service_name, password.account);
@@ -300,13 +305,21 @@
       if(li.hasClass("selected")) return;
 
       let idMatch = li.attr("id") && li.attr("id").match(/category_(.*)$/)
-      passwordList.categorySelect(idMatch && idMatch[1]);
+      passwordList.categorySelect(idMatch && idMatch[1], $("#filter-word").val());
 
       let nowSelected = $("#categories li.selected")
       if(nowSelected.length > 0) nowSelected.removeClass("selected");
       li.addClass("selected");
       // 未選択にする
       passwordList.passwordUnSelect();
+    })
+    $("#filter-word").on("keyup", function(e){
+      if(this.__prevValue__ == this.value) return;
+      this.__prevValue__ = this.value;
+
+      let li = $("#categories ul li.selected")
+      let idMatch = li.attr("id") && li.attr("id").match(/category_(.*)$/);
+      passwordList.categorySelect(idMatch && idMatch[1], this.value);
     })
     $(document).on("click", "#categories #add-category-btn", function(e){ passwordList.categoryAdd() })
     $(document).on("click", "#categories .edit-category-btn", function(e){
@@ -534,8 +547,10 @@
         <li id="menu-import"><i class="fa fa-upload" ></i><div>import</div></li>
         <li id="menu-export"><i class="fa fa-download" ></i><div>export</div></li>
       </ul>
+      <div id="menu-filter">
+        <input type="text" id="filter-word">
+      </div>
       <ul class="right">
-        <!--<li id="menu-setting"><i class="fa fa-cog" ></i><div>setting</div></li>-->
         <li id="menu-search"><i class="fa fa-undo" ></i><div>back</div></li>
       </ul>
     </div>
