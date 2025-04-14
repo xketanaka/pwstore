@@ -2,6 +2,7 @@ const electron = require('electron');
 const pwstore = require("../pwstore");
 const {config} = require("../utils/config");
 const Encryptor = require("../utils/encryptor");
+const TOTPGenerator = require("../utils/totp_generator");
 
 class SearchWindow {
   get defaultSize(){ return { width: 600, height: 61 }; }
@@ -21,10 +22,10 @@ class SearchWindow {
     // アプリケーションのindex.htmlの読み込み
     this.browserWindow.loadURL(pwstore.viewURL("views/search_window.html"));
   }
-  search(keyword, limit = 5){
+  search(keyword, limit = 8){
     let resizeWindow = (results)=>{
       let [w, h] = this.browserWindow.getSize();
-      this.browserWindow.setSize(w, this.defaultSize.height + results.length * 40);
+      this.browserWindow.setSize(w, this.defaultSize.height + results.length * 40 + 4);
       return results;
     };
     if(!keyword) return Promise.resolve([]).then(resizeWindow);
@@ -40,14 +41,18 @@ class SearchWindow {
       return conn.find(id)
     })
     .then((pwstore)=>{
-      if(!pwstore || !pwstore[target]) return;
+      if(!pwstore || !pwstore[target]) return { status: false };
 
       if(target.match(/password/)){
         electron.clipboard.writeText(this.appContext.encryptor.decrypt(pwstore[target]));
+      }else if(target.match(/otp_uri/)){
+        let uri = new URL(this.appContext.encryptor.decrypt(pwstore[target]));
+        let totp = new TOTPGenerator(uri.searchParams.get('secret'));
+        electron.clipboard.writeText(totp.totp());
       }else{
         electron.clipboard.writeText(pwstore[target]);
       }
-      return true;
+      return { status: true, hasNext: target == "account" || (target == "password" && pwstore.otp_uri) };
     })
   }
   showOnReady(){
@@ -58,9 +63,9 @@ class SearchWindow {
     this.browserWindow.setSize(w, this.defaultSize.height);
     this.browserWindow.minimize();
   }
-  moveToMainWindow(){
+  moveToMainWindow(options){
     this.browserWindow.hide();
-    this.windowManager.moveToNext("MainWindow", this.browserWindow);
+    this.windowManager.moveToNext("MainWindow", this.browserWindow, options);
   }
 }
 

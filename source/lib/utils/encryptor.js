@@ -6,11 +6,15 @@ class Encryptor {
     this.initVector = Encryptor.toBytes(initVector, 16);
   }
   encrypt(string){
+    if (!string) return string;
+
     let cipher = crypto.createCipheriv('aes-256-cbc', this.encryptionKey, this.initVector);
     let encrypted = cipher.update(Buffer.from(string, 'utf8'))
     return Buffer.concat([encrypted, cipher.final()]).toString('hex');
   }
   decrypt(string){
+    if (!string) return string;
+
     let decipher = crypto.createDecipheriv('aes-256-cbc', this.encryptionKey, this.initVector);
     let decrypted = decipher.update(Buffer.from(string, 'hex'));
       return Buffer.concat([decrypted, decipher.final()]).toString('utf8');

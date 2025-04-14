@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "electron": "^9.0",
+    "base32-decode": "^1.0.0",
     "sqlite3": "*"
   },
   "devDependencies": {

@@ -242,10 +242,15 @@
           $("#note").val(         password.note || "" );
           $("#status").val(       password.status || "" );
           $("#category").val(     password.category || "" );
+          $("#otp_uri").val(      password.otp_uri || "" );
           $("#show-password-tr")[password.password ? "removeClass" : "addClass"]("invisible");
+          $("#show-otp-uri-tr")[password.otp_uri ? "removeClass" : "addClass"]("invisible");
           // checkbox
           $("#show-password-tr input[type=checkbox]").prop("checked", false);
           $("#password").attr("type", "password");
+          // checkbox
+          $("#show-otp-uri-tr input[type=checkbox]").prop("checked", false);
+          $("#otp_uri").attr("type", "password");
           // textarea
           $("#note_display").html( Util.esc(password.note || "") );
           // selectbox
@@ -475,6 +480,10 @@
     $(document).on("click", "#show-password-tr input[type=checkbox]", function(e){
       $("#password").attr("type", $(this).prop("checked") ? "text" : "password");
     });
+    // OTP URIを表示するボタンコールバック
+    $(document).on("click", "#show-otp-uri-tr input[type=checkbox]", function(e){
+      $("#otp_uri").attr("type", $(this).prop("checked") ? "text" : "password");
+    });
     /// メニューボタンのクリック時のコーづバック
     $("#menu-new").on("click", (e)=>{
       remoteMainWindow().create().then((id)=>{ passwordList.addNew(id) })
@@ -537,6 +546,11 @@
       })
     })
     remoteMainWindow().showOnReady();
+    setTimeout(()=>{
+      let serviceName = remoteMainWindow().defaultSelected;
+      $("#filter-word").val(serviceName);
+      passwordList.categorySelect(undefined, serviceName);
+    }, 100)
   });
   </script>
   <body>
@@ -606,6 +620,12 @@
                   <option value="">- none -</option>
                 </select>
               </td>
+            </tr>
+            <tr>
+              <th>OTP URI</th><td><input type="password" id="otp_uri" value="" readonly="readonly" ></td>
+            </tr>
+            <tr class="unfocus" id="show-otp-uri-tr">
+              <td></td><td><label><input type="checkbox" >show OTP URI</label></td>
             </tr>
             <tr>
               <th>note</th>

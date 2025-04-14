@@ -37,12 +37,15 @@
     border: solid 1px transparent; border-radius: 6px;
     padding: 0px 4px; font-size: x-small; pointer-events: auto;
   }
+  li .result span.right-btn[data-disabled] { color: #bbb; }
   li .result span.right-btn i { display: block; text-align: center; font-size: small; }
   li.selected { background-color: #e9669d;  }
   li.selected .result { border: solid 1px #fdfdfd; background-color: #fff6fa;  }
   li.selected .result span { color: #3b3b3b; background-color: #fff6fa }
   li.selected .result span.right-btn { border-style: outset; border-color: #f8f0f3; cursor: default; }
+  li.selected .result span.right-btn[data-disabled] { border: solid 1px transparent; }
   li.selected .result span.right-btn:hover { background-color: #fffafd; }
+  li.selected .result span.right-btn[data-disabled]:hover { background-color: #fff6fa !important; }
   li.selected .result span.right-btn:active { background-color: #efe6ea; border-style: groove; }
   .more-items {
     position: absolute; top: 9px; width: 100%; text-align: center; left: -3px; padding: 3px;
@@ -71,7 +74,8 @@
           let clazz = p.id == nowSelectedId ? 'class="selected"': '';
           let spans = [];
           spans.push(`<span class="service"><i class="fa fa-lock"></i> ${Util.esc(p.service_name)}</span>`);
-          spans.push(`<span class="right-btn" ><i class="fa fa-comment-o"></i>detail</span>`);
+          spans.push(`<span class="right-btn" data-btn-detail><i class="fa fa-comment-o"></i>detail</span>`);
+          spans.push(`<span class="right-btn" ${p.otp_uri ? '' : 'data-disabled'} data-btn-otp><i class="fa fa-clock-o"></i>otpwd</span>`);
           spans.push(`<span class="right"> ${Util.esc(p.account || "")} </span>`);
           return `<li ${clazz} id="password_${p.id}"><div class="result">${spans.join("")}</div></li>`;
         }).join("");
@@ -79,6 +83,7 @@
       this.results = ()=>{ return Array.prototype.slice.call(this.ul.children) };
       this.select = (li)=>{ li.className = "selected" };
       this.unSelect = (li)=>{
+        this.passwordCopied = false;
         if(!li){
           li = this.results().filter(obj => obj.className == "selected")[0];
         }
@@ -110,31 +115,43 @@
           this.select(results[selectedIndex - 1]);
           this.unSelect(results[selectedIndex]);
         }
-      }
-      this.enter = (shiftKey)=>{
+      };
+      this.enter = ({ shiftKey, altKey, ctrl, givenTarget })=>{
         let selected = this.results().filter(obj => obj.className == "selected")[0];
         if(!selected) return;
 
-        let target =  "password";
+        let target = "password";
         if(shiftKey){ target = "account" }
+        if(this.passwordCopied) { target = "otp_uri" }
+        if(givenTarget){ target = givenTarget }
 
         remoteSearchWindow().copy(selected.id.match(/password_(.*)$/)[1], target)
         .then((result)=>{
-          if(result){
-            if(shiftKey){
+          if(result.status){
+            if(result.hasNext || givenTarget){
               let tooltip = $("#tooltip");
               tooltip.innerHTML = target + " をクリップボードにコピーしました";
               tooltip.style.top = selected.offsetTop + "px";
               tooltip.style.display = "inline-block";
               setTimeout(()=>{ tooltip.style.display = "none" }, 1800);
+              if (target == "password") {
+                this.passwordCopied = true;
+              }
             }else{
               $("#search-area input").value = '';
               this.ul.innerHTML = '';
+              this.unSelect();
               remoteSearchWindow().hide();
             }
           }
         });
-      }
+      };
+      this.moveToDetail = ()=>{
+        let selected = this.results().filter(obj => obj.className == "selected")[0];
+        if(!selected) return;
+
+        remoteSearchWindow().moveToMainWindow({ id: selected.id.match(/password_(.*)$/)[1] });
+      };
 
     })($("#result-area ul"));
 
@@ -159,7 +176,7 @@
       if(textField._status_ == "composition") return;
       if(Key.isArrowDown(e)) return searchResult.selectDown();
       if(Key.isArrowUp(e)) return searchResult.selectUp();
-      if(Key.isEnter(e)) return searchResult.enter(e.shiftKey, e.altKey, e.ctrlKey);
+      if(Key.isEnter(e)) return searchResult.enter({ shiftKey: e.shiftKey, altKey: e.altKey, ctrl: e.ctrlKey });
     })
     // マネージメントウィンドウに遷移
     $("#search-area button").addEventListener("click", (e)=>{
@@ -183,10 +200,13 @@
 
     $("#result-area").addEventListener("click", (e)=>{
       if(e.target.tagName == "DIV" == e.target.tagName == "LI"){
-        return searchResult.enter(e.shiftKey, e.altKey, e.ctrlKey);
+        return searchResult.enter({ shiftKey: e.shiftKey, altKey: e.altKey, ctrlKey: e.ctrlKey });
       }
-      if(e.target.tagName == "SPAN" && e.target.className == "right-btn"){
-        // TODO 詳細ボタンクリック時の挙動
+      if(e.target.closest("span[data-btn-detail]")){
+        return searchResult.moveToDetail();
+      }
+      if(e.target.closest("span[data-btn-otp]")){
+        return searchResult.enter({ givenTarget: "otp_uri" });
       }
     })
     remoteSearchWindow().showOnReady();

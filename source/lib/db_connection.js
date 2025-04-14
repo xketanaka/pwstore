@@ -93,7 +93,8 @@ class DBConnection {
       "note",
       "status",
       "keyword",
-      "category"
+      "category",
+      "otp_uri"
     ];
   }
   delete(id){

@@ -8,7 +8,7 @@ const {config} = require('../utils/config');
 class MainWindow {
   get defaultSize(){ return { width: 1000, height: 600 } }
 
-  constructor(appContext, browserWindow){
+  constructor(appContext, browserWindow, options){
     this.appContext = appContext;
 
     // ブラウザウィンドウのリサイズ
@@ -21,10 +21,22 @@ class MainWindow {
       // ブラウザウィンドウの作成
       this.browserWindow = this.windowManager.createBrowserWindow(Object.assign({ show: false }, this.defaultSize));
     }
-    this.browserWindow.loadURL(pwstore.viewURL("views/main_window.html"));
+    this.appContext.database.getConnection()
+    .then((conn)=>{
+      if (!(options && options.id)) return;
+      return conn.find(options.id).then((pwstore)=>{
+        this._defaultSelected = pwstore.service_name;
+      })
+    })
+    .then(()=>{
+      this.browserWindow.loadURL(pwstore.viewURL("views/main_window.html"));
+    })
   }
   get status(){
     return { active: 1, expired: 7, exited: 8, closed: 9 }
+  }
+  get defaultSelected(){
+    return this._defaultSelected;
   }
   categories(){
     return this.appContext.database.getConnection()
@@ -68,6 +80,7 @@ class MainWindow {
     .then((conn)=>{
       return conn.find(id).then((pwstore)=>{
         pwstore.password = this.appContext.encryptor.decrypt(pwstore.password);
+        pwstore.otp_uri = this.appContext.encryptor.decrypt(pwstore.otp_uri);
         (pwstore.extras || []).filter(extra => extra.encrypted).forEach((extra)=>{
           extra.value = this.appContext.encryptor.decrypt(extra.value);
         });
@@ -92,12 +105,16 @@ class MainWindow {
     // TODO: validation
     debug("register(input:" + JSON.stringify(input));
 
+    // encrypt
+    if('password' in input){
+      Object.assign(input, { password: this.appContext.encryptor.encrypt(input.password) });
+    }
+    if('otp_uri' in input){
+      Object.assign(input, { otp_uri: this.appContext.encryptor.encrypt(input.otp_uri) });
+    }
+
     return this.appContext.database.getConnection()
     .then((conn)=>{
-      // encrypt
-      if('password' in input){
-        Object.assign(input, { password: this.appContext.encryptor.encrypt(input.password) });
-      }
       return conn.update(id, input)
       .then(()=>{
         return Promise.all((input.extras || []).map((extra)=>{
@@ -145,6 +162,7 @@ class MainWindow {
         .reduce((sum,key)=>{
           switch(key){
             case "password": sum[key] = this.appContext.encryptor.decrypt(row[key]); break;
+            case "otp_uri": sum[key] = this.appContext.encryptor.decrypt(row[key]); break;
             case "category": sum[key] = locals.categories.find(c => c.id == row[key]).name; break;
             default: sum[key] = row[key];
           }
@@ -236,6 +254,9 @@ class MainWindow {
           .then(()=>{
             if("password" in entry){
               entry.password = this.appContext.encryptor.encrypt(entry.password);
+            }
+            if("otp_uri" in entry){
+              entry.otp_uri = this.appContext.encryptor.encrypt(entry.otp_uri);
             }
             return connection.create(entry)
           })

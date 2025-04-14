@@ -35,7 +35,7 @@ class WindowManager {
     this.appContext = appContext;
     this.windowContainer = new Map();
   }
-  create(name, browserWindow){
+  create(name, browserWindow, createOptions){
     let targetConstructor = WindowManager[name];
     if(!targetConstructor.prototype.windowManager){
       targetConstructor.prototype.windowManager = {
@@ -43,12 +43,12 @@ class WindowManager {
       };
       targetConstructor.prototype.windowManager.__proto__ = this;
     }
-    this.windowContainer.set(name, new targetConstructor(this.appContext, browserWindow));
+    this.windowContainer.set(name, new targetConstructor(this.appContext, browserWindow, createOptions));
   }
-  moveToNext(name, browserWindow){
+  moveToNext(name, browserWindow, nextOptions){
     this.windowContainer.delete(browserWindow.associatedWindow);
 
-    this.create(name, browserWindow);
+    this.create(name, browserWindow, nextOptions);
     browserWindow.associatedWindow = name;
   }
   get(name){
